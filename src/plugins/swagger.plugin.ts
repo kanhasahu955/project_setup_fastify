@@ -40,14 +40,21 @@ export async function registerSwagger(app: FastifyInstance) {
                 url: 'https://github.com/yourusername/live_bhoomi',
                 description: 'Find more information here'
             },
-            servers: env.NODE_ENV === 'production' 
-                ? [
-                    {
-                        url: env.API_URL || '',
-                        description: 'Production server'
-                    }
-                ]
-                : [
+            servers: (() => {
+                const renderUrl = process.env.RENDER_EXTERNAL_URL;
+                const apiUrl = env.API_URL;
+                
+                if (env.NODE_ENV === 'production') {
+                    const productionUrl = apiUrl || renderUrl || 'https://sk-bakery-3blw.onrender.com';
+                    return [
+                        {
+                            url: productionUrl,
+                            description: 'Production server'
+                        }
+                    ];
+                }
+                
+                return [
                     {
                         url: `http://localhost:${env.PORT}`,
                         description: 'Development server'
@@ -56,7 +63,8 @@ export async function registerSwagger(app: FastifyInstance) {
                         url: `http://127.0.0.1:${env.PORT}`,
                         description: 'Development server (127.0.0.1)'
                     }
-                ],
+                ];
+            })(),
             tags: [
                 {
                     name: 'health',
