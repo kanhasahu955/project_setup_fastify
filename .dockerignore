@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+
+# Build output (we rebuild in Docker)
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment files (use Docker env vars instead)
+.env
+.env.local
+.env.*.local
+
+# SSL Certificates (mount as volume or use secrets)
+certificates/*.key
+certificates/*.crt
+certificates/*.pem
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Test files
+tests
+coverage
+*.test.ts
+*.spec.ts
+vitest.config.ts
+
+# HTTP client files (development only)
+http
+
+# Documentation
+README.md
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Scripts (development only)
+scripts

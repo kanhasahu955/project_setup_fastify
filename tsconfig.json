@@ -3,23 +3,19 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ES2023",
+    "target": "ES2022",
     "outDir": "dist",
     "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "declaration": false,
+    "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@types/*": [
-        "src/@types/*"
-      ],
-      "@plugins/*": [
-        "src/plugins/*"
-      ]
+      "@/*": ["src/*"],
+      "@types/*": ["src/@types/*"],
+      "@plugins/*": ["src/plugins/*"]
     }
   },
   "include": [
@@ -29,6 +25,7 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "scripts"
   ]
 }

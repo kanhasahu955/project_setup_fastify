@@ -478,13 +478,114 @@ All responses follow this structure:
 |--------|-------------|
 | `npm run dev` | Start development server (HTTP) |
 | `npm run dev:https` | Start development server (HTTPS) |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run start:prod` | Start production server with NODE_ENV=production |
+| `npm run build:check` | Type check without building |
+| `npm run clean` | Remove dist folder |
 | `npm run generate:cert` | Generate SSL certificates |
+| `npm run prisma:generate` | Generate Prisma client |
+| `npm run prisma:push` | Push schema to database |
+| `npm run prisma:studio` | Open Prisma Studio |
 | `npm run test` | Run tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage |
 | `npm run http` | Run all HTTP client tests |
 | `npm run http:health` | Run health check HTTP tests |
 | `npm run http:api` | Run API HTTP tests |
+
+---
+
+## Deployment
+
+### Build for Production
+
+```bash
+# Install dependencies
+npm ci
+
+# Generate Prisma client
+npm run prisma:generate
+
+# Build the application
+npm run build
+
+# Start production server
+npm run start:prod
+```
+
+### Docker Deployment
+
+```bash
+# Build Docker image
+docker build -t livebhoomi-api .
+
+# Run container
+docker run -d \
+  --name livebhoomi-api \
+  -p 8000:8000 \
+  -e DATABASE_URL="your-mongodb-url" \
+  -e JWT_SECRET="your-jwt-secret" \
+  -e COOKIE_SECRET="your-cookie-secret" \
+  livebhoomi-api
+```
+
+### Docker Compose
+
+```bash
+# Create .env file with your configuration
+cp .env.example .env
+
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Deployment Platforms
+
+The application can be deployed to:
+
+| Platform | Method |
+|----------|--------|
+| **Railway** | Connect GitHub repo, set env vars |
+| **Render** | Docker or Node.js runtime |
+| **Fly.io** | `fly launch` with Dockerfile |
+| **DigitalOcean App Platform** | Connect GitHub repo |
+| **AWS ECS/Fargate** | Use Dockerfile |
+| **Google Cloud Run** | Use Dockerfile |
+| **Azure Container Apps** | Use Dockerfile |
+| **Heroku** | Add Procfile: `web: npm run start:prod` |
+
+### Production Environment Variables
+
+```env
+NODE_ENV=production
+PORT=8000
+HOST=0.0.0.0
+DATABASE_URL=mongodb+srv://...
+LOG_LEVEL=info
+FRONTEND_URL=https://your-frontend.com
+COOKIE_SECRET=<generate-secure-random-string>
+JWT_SECRET=<generate-secure-random-string>
+JWT_EXPIRES_IN=1d
+USE_HTTPS=false  # Set true if handling HTTPS at app level
+```
+
+### Production Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Use strong secrets for `JWT_SECRET` and `COOKIE_SECRET`
+- [ ] Configure proper `FRONTEND_URL` for CORS
+- [ ] Set up database connection with proper credentials
+- [ ] Configure SSL/TLS (via reverse proxy or `USE_HTTPS=true`)
+- [ ] Set up logging and monitoring
+- [ ] Configure rate limiting for your needs
+- [ ] Set up health check monitoring
 
 ---
 
