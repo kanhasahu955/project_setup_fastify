@@ -1,0 +1,33 @@
+# Render Blueprint Configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: livebhoomi-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm ci && npm run prisma:generate && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: LOG_LEVEL
+        value: info
+      - key: FRONTEND_URL
+        sync: false  # Set manually in Render dashboard
+      - key: USE_HTTPS
+        value: false
