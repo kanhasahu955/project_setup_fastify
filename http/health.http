@@ -1,0 +1,22 @@
+### Import Global Variables
+@import ./globals.http
+
+# Variables
+@baseUrl = http://localhost:8000
+@apiPrefix = /api/v1
+
+### Health Check - Basic
+GET {{baseUrl}}{{apiPrefix}}/health
+Accept: application/json
+
+### Health Check - With detailed info
+GET {{baseUrl}}{{apiPrefix}}/health?detailed=true
+Accept: application/json
+
+### Root endpoint
+GET {{baseUrl}}/
+Accept: application/json
+
+### API Documentation
+GET {{baseUrl}}/documentation
+Accept: text/html
