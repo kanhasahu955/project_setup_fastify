@@ -4,19 +4,15 @@
 services:
   - type: web
     name: livebhoomi-api
-    env: node
+    runtime: node
     region: oregon
     plan: free
-    buildCommand: npm ci && npm run prisma:generate && npm run build
-    startCommand: npm run start:prod
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 8000
-      - key: HOST
-        value: 0.0.0.0
       - key: DATABASE_URL
         sync: false  # Set manually in Render dashboard
       - key: JWT_SECRET
@@ -30,4 +26,4 @@ services:
       - key: FRONTEND_URL
         sync: false  # Set manually in Render dashboard
       - key: USE_HTTPS
-        value: false
+        value: "false"
