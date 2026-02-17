@@ -40,20 +40,23 @@ export async function registerSwagger(app: FastifyInstance) {
                 url: 'https://github.com/yourusername/live_bhoomi',
                 description: 'Find more information here'
             },
-            servers: [
-                {
-                    url: `${env.USE_HTTPS ? 'https' : 'http'}://127.0.0.1:${env.PORT}`,
-                    description: 'Development server'
-                },
-                {
-                    url: `${env.USE_HTTPS ? 'https' : 'http'}://localhost:${env.PORT}`,
-                    description: 'Development server (localhost)'
-                },
-                {
-                    url: `https://api.livebhoomi.com`,
-                    description: 'Production server'
-                }
-            ],
+            servers: env.NODE_ENV === 'production' 
+                ? [
+                    {
+                        url: env.API_URL || '',
+                        description: 'Production server'
+                    }
+                ]
+                : [
+                    {
+                        url: `http://localhost:${env.PORT}`,
+                        description: 'Development server'
+                    },
+                    {
+                        url: `http://127.0.0.1:${env.PORT}`,
+                        description: 'Development server (127.0.0.1)'
+                    }
+                ],
             tags: [
                 {
                     name: 'health',

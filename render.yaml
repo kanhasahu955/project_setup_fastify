@@ -27,3 +27,5 @@ services:
         sync: false  # Set manually in Render dashboard
       - key: USE_HTTPS
         value: "false"
+      - key: API_URL
+        value: https://sk-bakery-3blw.onrender.com

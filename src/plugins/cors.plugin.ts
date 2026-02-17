@@ -14,7 +14,10 @@ export async function registerSecurity(app: FastifyInstance) {
         `http://localhost:${env.PORT}`,
         `http://127.0.0.1:${env.PORT}`,
         `https://localhost:${env.PORT}`,
-        `https://127.0.0.1:${env.PORT}`
+        `https://127.0.0.1:${env.PORT}`,
+        // Add API URL for Swagger in production (Render provides this)
+        ...(env.API_URL ? [env.API_URL] : []),
+        ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : [])
     ];
 
     await app.register(fastifyHelmet, {

@@ -18,6 +18,7 @@ interface EnvConfig {
 	JWT_SECRET: string;
 	JWT_EXPIRES_IN: string;
 	USE_HTTPS: boolean;
+	API_URL: string;
 }
 
 class Environment implements EnvConfig {
@@ -31,6 +32,7 @@ class Environment implements EnvConfig {
 	public readonly JWT_SECRET: string;
 	public readonly JWT_EXPIRES_IN: string;
 	public readonly USE_HTTPS: boolean;
+	public readonly API_URL: string;
 
 	constructor() {
 		this.PORT = this.getNumber("PORT", 3000);
@@ -48,6 +50,8 @@ class Environment implements EnvConfig {
 		this.JWT_SECRET = this.getString("JWT_SECRET");
 		this.JWT_EXPIRES_IN = this.getString("JWT_EXPIRES_IN", "1d");
 		this.USE_HTTPS = this.getBoolean("USE_HTTPS", false);
+		// Render provides RENDER_EXTERNAL_URL automatically
+		this.API_URL = this.getString("API_URL", process.env.RENDER_EXTERNAL_URL || "");
 	}
 
 	private getString(key: string, defaultValue?: string): string {
