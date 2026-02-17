@@ -12,7 +12,9 @@ export async function registerSecurity(app: FastifyInstance) {
     const allowedOrigins = [
         ...(Array.isArray(env.FRONTEND_URL) ? env.FRONTEND_URL : [env.FRONTEND_URL]),
         `http://localhost:${env.PORT}`,
-        `http://127.0.0.1:${env.PORT}`
+        `http://127.0.0.1:${env.PORT}`,
+        `https://localhost:${env.PORT}`,
+        `https://127.0.0.1:${env.PORT}`
     ];
 
     await app.register(fastifyHelmet, {

@@ -42,8 +42,12 @@ export async function registerSwagger(app: FastifyInstance) {
             },
             servers: [
                 {
-                    url: `http://127.0.0.1:${env.PORT}`,
+                    url: `${env.USE_HTTPS ? 'https' : 'http'}://127.0.0.1:${env.PORT}`,
                     description: 'Development server'
+                },
+                {
+                    url: `${env.USE_HTTPS ? 'https' : 'http'}://localhost:${env.PORT}`,
+                    description: 'Development server (localhost)'
                 },
                 {
                     url: `https://api.livebhoomi.com`,
