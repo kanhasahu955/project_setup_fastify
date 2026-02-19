@@ -135,6 +135,24 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  phone     String
+  otp       String
+  name      String
+  password  String
+  role      UserRole @default(BUYER)
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([phone])
+  @@index([expiresAt])
+}
+
 model Project {
   id          String @id @default(auto()) @map("_id") @db.ObjectId
   name        String

@@ -86,6 +86,34 @@ export const UserStatsSchema: ObjectSchema = {
 // REQUEST BODY SCHEMAS
 // ============================================
 
+export const RegisterBody: ObjectSchema = {
+    type: "object",
+    required: ["name", "email", "phone", "password"],
+    properties: {
+        name: { type: "string", minLength: 2, maxLength: 100, description: "Full name" },
+        email: { type: "string", format: "email", description: "Email address" },
+        phone: { type: "string", minLength: 10, maxLength: 10, description: "10-digit Indian mobile number" },
+        password: { type: "string", minLength: 8, description: "Password (min 8 chars, must include uppercase, lowercase, number, special char)" },
+    },
+};
+
+export const VerifyOtpBody: ObjectSchema = {
+    type: "object",
+    required: ["email", "otp"],
+    properties: {
+        email: { type: "string", format: "email", description: "Email address" },
+        otp: { type: "string", minLength: 6, maxLength: 6, description: "6-digit OTP" },
+    },
+};
+
+export const ResendOtpBody: ObjectSchema = {
+    type: "object",
+    required: ["email"],
+    properties: {
+        email: { type: "string", format: "email", description: "Email address" },
+    },
+};
+
 export const CreateUserBody: ObjectSchema = {
     type: "object",
     required: ["name", "email", "phone"],
@@ -114,7 +142,7 @@ export const LoginBody: ObjectSchema = {
     type: "object",
     required: ["identifier", "password"],
     properties: {
-        identifier: { type: "string", description: "Email or phone number" },
+        identifier: { type: "string", description: "Email or 10-digit phone number" },
         password: { type: "string", minLength: 1, description: "Account password" },
     },
 };
@@ -364,6 +392,92 @@ export const UserRouteSchemas = {
                 },
             }, "Check completed"),
             400: ErrorResponses.ValidationError,
+        },
+    }),
+};
+
+// ============================================
+// AUTH ROUTE SCHEMAS (with OTP verification)
+// ============================================
+
+const AuthResponseSchema: ObjectSchema = {
+    type: "object",
+    properties: {
+        message: { type: "string" },
+        email: { type: "string", format: "email" },
+    },
+};
+
+const LoginResponseSchema: ObjectSchema = {
+    type: "object",
+    properties: {
+        user: UserSchema as any,
+        token: { type: "string", description: "JWT token" },
+    },
+};
+
+const ValidationErrorSchema: ObjectSchema = {
+    type: "object",
+    properties: {
+        success: { type: "boolean", example: false },
+        message: { type: "string", example: "Validation failed" },
+        statusCode: { type: "integer", example: 400 },
+        errors: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    field: { type: "string", example: "email" },
+                    message: { type: "string", example: "Invalid email format" },
+                },
+            },
+        },
+    },
+};
+
+export const AuthRouteSchemas = {
+    register: buildSchema({
+        description: "Register a new user. Sends OTP to email for verification.",
+        tags: ["Auth"],
+        body: RegisterBody,
+        response: {
+            200: successResponse(AuthResponseSchema, "OTP sent successfully"),
+            400: ValidationErrorSchema,
+            409: ErrorResponses.Conflict,
+        },
+    }),
+
+    verifyOtp: buildSchema({
+        description: "Verify OTP and complete registration",
+        tags: ["Auth"],
+        body: VerifyOtpBody,
+        response: {
+            201: createdResponse(LoginResponseSchema, "Registration completed successfully"),
+            400: ValidationErrorSchema,
+            404: ErrorResponses.NotFound,
+        },
+    }),
+
+    resendOtp: buildSchema({
+        description: "Resend OTP to email",
+        tags: ["Auth"],
+        body: ResendOtpBody,
+        response: {
+            200: successResponse(AuthResponseSchema, "OTP resent successfully"),
+            400: ValidationErrorSchema,
+            404: ErrorResponses.NotFound,
+        },
+    }),
+
+    login: buildSchema({
+        description: "Login with email/phone and password",
+        tags: ["Auth"],
+        body: LoginBody,
+        response: {
+            200: successResponse(LoginResponseSchema, "Login successful"),
+            400: ValidationErrorSchema,
+            401: ErrorResponses.Unauthorized,
+            403: ErrorResponses.Forbidden,
         },
     }),
 };

@@ -1,11 +1,14 @@
 import { FastifyInstance } from "fastify";
 import { userController } from "@/controllers/user.controller";
-import { UserRouteSchemas } from "@/schemas/user.schema";
+import { authController } from "@/controllers/auth.controller";
+import { UserRouteSchemas, AuthRouteSchemas } from "@/schemas/user.schema";
 
 export async function userRoutes(app: FastifyInstance) {
-    // Auth routes
-    app.post("/auth/register", { schema: UserRouteSchemas.register }, userController.register);
-    app.post("/auth/login", { schema: UserRouteSchemas.login }, userController.login);
+    // Auth routes with OTP verification
+    app.post("/auth/register", { schema: AuthRouteSchemas.register }, authController.register);
+    app.post("/auth/verify-otp", { schema: AuthRouteSchemas.verifyOtp }, authController.verifyOtp);
+    app.post("/auth/resend-otp", { schema: AuthRouteSchemas.resendOtp }, authController.resendOtp);
+    app.post("/auth/login", { schema: AuthRouteSchemas.login }, authController.login);
 
     // Current user routes
     app.get("/users/me", { schema: UserRouteSchemas.getMe }, userController.getMe);
