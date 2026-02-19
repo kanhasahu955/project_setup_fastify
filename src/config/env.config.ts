@@ -23,6 +23,15 @@ interface EnvConfig {
 	SMTP_USER: string;
 	SMTP_PASS: string;
 	MAIL_FROM_NAME: string;
+	// Firebase Configuration
+	FIREBASE_PROJECT_ID: string;
+	FIREBASE_CLIENT_EMAIL: string;
+	FIREBASE_PRIVATE_KEY: string;
+	FIREBASE_STORAGE_BUCKET: string;
+	// ImageKit Configuration
+	IMAGEKIT_PUBLIC_KEY: string;
+	IMAGEKIT_PRIVATE_KEY: string;
+	IMAGEKIT_URL_ENDPOINT: string;
 }
 
 class Environment implements EnvConfig {
@@ -41,6 +50,15 @@ class Environment implements EnvConfig {
 	public readonly SMTP_USER: string;
 	public readonly SMTP_PASS: string;
 	public readonly MAIL_FROM_NAME: string;
+	// Firebase Configuration
+	public readonly FIREBASE_PROJECT_ID: string;
+	public readonly FIREBASE_CLIENT_EMAIL: string;
+	public readonly FIREBASE_PRIVATE_KEY: string;
+	public readonly FIREBASE_STORAGE_BUCKET: string;
+	// ImageKit Configuration
+	public readonly IMAGEKIT_PUBLIC_KEY: string;
+	public readonly IMAGEKIT_PRIVATE_KEY: string;
+	public readonly IMAGEKIT_URL_ENDPOINT: string;
 
 	constructor() {
 		this.PORT = this.getNumber("PORT", 3000);
@@ -64,6 +82,15 @@ class Environment implements EnvConfig {
 		this.SMTP_USER = this.getString("SMTP_USER", "");
 		this.SMTP_PASS = this.getString("SMTP_PASS", "");
 		this.MAIL_FROM_NAME = this.getString("MAIL_FROM_NAME", "Live Bhoomi");
+		// Firebase Configuration
+		this.FIREBASE_PROJECT_ID = this.getString("FIREBASE_PROJECT_ID", "");
+		this.FIREBASE_CLIENT_EMAIL = this.getString("FIREBASE_CLIENT_EMAIL", "");
+		this.FIREBASE_PRIVATE_KEY = this.getString("FIREBASE_PRIVATE_KEY", "").replace(/\\n/g, "\n");
+		this.FIREBASE_STORAGE_BUCKET = this.getString("FIREBASE_STORAGE_BUCKET", "");
+		// ImageKit Configuration
+		this.IMAGEKIT_PUBLIC_KEY = this.getString("IMAGEKIT_PUBLIC_KEY", "");
+		this.IMAGEKIT_PRIVATE_KEY = this.getString("IMAGEKIT_PRIVATE_KEY", "");
+		this.IMAGEKIT_URL_ENDPOINT = this.getString("IMAGEKIT_URL_ENDPOINT", "");
 	}
 
 	private getString(key: string, defaultValue?: string): string {

@@ -19,8 +19,11 @@ export interface SchemaProperty {
     maximum?: number;
     minLength?: number;
     maxLength?: number;
+    minItems?: number;
+    maxItems?: number;
     default?: unknown;
     nullable?: boolean;
+    additionalProperties?: boolean;
     $ref?: string;
 }
 

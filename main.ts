@@ -7,6 +7,9 @@ import { env } from "@/config/env.config";
 import { registerSecurity } from '@/plugins/cors.plugin';
 import { certificatesExist, loadCertificates, getCertificatePaths } from '@/config/certificate.config';
 import requestResponsePlugin from '@/plugins/request-response.plugin';
+import multipartPlugin from '@/plugins/multipart.plugin';
+import { initializeFirebase } from '@/config/firebase.config';
+import { initializeImageKit } from '@/config/imagekit.config';
 
 
 class Application {
@@ -96,6 +99,15 @@ class Application {
 
         this.app.log.info('Connecting Prisma...');
         await connectPrisma(this.app.log);
+
+        this.app.log.info('Initializing Firebase...');
+        initializeFirebase();
+
+        this.app.log.info('Initializing ImageKit...');
+        initializeImageKit();
+
+        this.app.log.info('Registering Multipart Plugin...');
+        await this.app.register(multipartPlugin);
 
         this.app.log.info('Registering Swagger...');
         await registerSwagger(this.app);
