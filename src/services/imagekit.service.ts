@@ -64,19 +64,21 @@ class ImageKitService {
             customMetadata = {},
         } = options;
 
-        const response = await imagekit.files.upload({
+        const uploadOptions: any = {
             file: buffer.toString("base64"),
             fileName,
             folder: `/${folder}`,
             tags,
             useUniqueFileName,
             isPrivateFile,
-            customMetadata: {
-                ...customMetadata,
-                originalName: originalName || fileName,
-                uploadedAt: new Date().toISOString(),
-            },
-        });
+        };
+
+        // Only add customMetadata if provided and non-empty
+        if (customMetadata && Object.keys(customMetadata).length > 0) {
+            uploadOptions.customMetadata = customMetadata;
+        }
+
+        const response = await imagekit.files.upload(uploadOptions);
 
         return {
             fileId: response.fileId || "",
@@ -110,19 +112,21 @@ class ImageKitService {
             customMetadata = {},
         } = options;
 
-        const response = await imagekit.files.upload({
+        const uploadOptions: any = {
             file: imageUrl,
             fileName,
             folder: `/${folder}`,
             tags,
             useUniqueFileName,
             isPrivateFile,
-            customMetadata: {
-                ...customMetadata,
-                sourceUrl: imageUrl,
-                uploadedAt: new Date().toISOString(),
-            },
-        });
+        };
+
+        // Only add customMetadata if provided and non-empty
+        if (customMetadata && Object.keys(customMetadata).length > 0) {
+            uploadOptions.customMetadata = customMetadata;
+        }
+
+        const response = await imagekit.files.upload(uploadOptions);
 
         return {
             fileId: response.fileId || "",

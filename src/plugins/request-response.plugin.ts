@@ -7,7 +7,8 @@ import { cleanObject, formatResponse, formatError } from '@/utils/lodash.util';
 const requestResponsePlugin = async (app: FastifyInstance) => {
 
     app.addHook('preHandler', async (request: FastifyRequest) => {
-        if (request.body && _.isObject(request.body)) {
+        // Skip body cleaning for multipart requests (file uploads)
+        if (request.body && _.isObject(request.body) && !request.isMultipart()) {
             request.body = cleanObject(request.body);
         }
         if (request.query && _.isObject(request.query)) {

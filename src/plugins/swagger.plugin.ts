@@ -289,6 +289,27 @@ export async function registerSwagger(app: FastifyInstance) {
         },
         staticCSP: false,
         transformSpecification: (swaggerObject: any, _request: any, _reply: any) => {
+            // Transform isFile properties to proper OpenAPI 3.0 binary format
+            if (swaggerObject.paths) {
+                for (const path of Object.values(swaggerObject.paths) as any[]) {
+                    for (const method of Object.values(path) as any[]) {
+                        if (method.requestBody?.content?.['application/json']?.schema?.properties) {
+                            const props = method.requestBody.content['application/json'].schema.properties;
+                            let hasFile = false;
+                            for (const [key, value] of Object.entries(props) as [string, any][]) {
+                                if (value.isFile) {
+                                    props[key] = { type: 'string', format: 'binary' };
+                                    hasFile = true;
+                                }
+                            }
+                            if (hasFile) {
+                                method.requestBody.content['multipart/form-data'] = method.requestBody.content['application/json'];
+                                delete method.requestBody.content['application/json'];
+                            }
+                        }
+                    }
+                }
+            }
             return swaggerObject;
         },
         transformSpecificationClone: true

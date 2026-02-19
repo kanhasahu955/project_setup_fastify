@@ -214,27 +214,39 @@ export const CreateFolderBody: ObjectSchema = {
 // ============================================
 
 export const ImageKitRouteSchemas = {
-    upload: buildSchema({
-        description: "Upload a single image to ImageKit",
+    upload: {
+        description: "Upload a single image to ImageKit. Use 'file' as the field name.",
         tags: ["ImageKit"],
         querystring: ImageUploadQuery,
+        body: {
+            type: "object",
+            properties: {
+                file: { isFile: true },
+            },
+        },
         response: {
             201: createdResponse(ImageUploadResultSchema, "Image uploaded successfully"),
             400: ErrorResponses.ValidationError,
             500: ErrorResponses.InternalServerError,
         },
-    }),
+    },
 
-    uploadMultiple: buildSchema({
-        description: "Upload multiple images to ImageKit",
+    uploadMultiple: {
+        description: "Upload multiple images to ImageKit. Use 'files' as the field name.",
         tags: ["ImageKit"],
         querystring: ImageUploadQuery,
+        body: {
+            type: "object",
+            properties: {
+                files: { isFile: true },
+            },
+        },
         response: {
             200: successResponse(BulkImageUploadResultSchema, "Images upload completed"),
             400: ErrorResponses.ValidationError,
             500: ErrorResponses.InternalServerError,
         },
-    }),
+    },
 
     uploadFromUrl: buildSchema({
         description: "Upload an image from URL to ImageKit",

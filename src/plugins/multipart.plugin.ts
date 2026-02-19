@@ -12,7 +12,7 @@ async function multipartPlugin(app: FastifyInstance) {
             files: 10, // max 10 files per request
             headerPairs: 2000,
         },
-        attachFieldsToBody: false,
+        attachFieldsToBody: true,
     });
 
     app.log.info("📁 Multipart plugin registered");

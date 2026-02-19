@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
+import { MultipartFile } from "@fastify/multipart";
 import { imagekitService } from "@/services/imagekit.service";
 import { FastifyResponseHelper } from "@/helpers/httpStatus";
 import type { ImageKitFolder, ImageTransformOptions, ImageListOptions } from "@/types/imagekit.types";
@@ -44,15 +45,30 @@ interface CreateFolderBody {
     folderPath: string;
 }
 
+interface UploadBody {
+    file?: MultipartFile;
+}
+
+interface UploadMultipleBody {
+    files?: MultipartFile | MultipartFile[];
+}
+
 class ImageKitController {
     async upload(request: FastifyRequest, reply: FastifyReply) {
         try {
             const query = FastifyResponseHelper.query<ImageUploadQuery>(request);
             const { folder = "misc", tags, useUniqueFileName = true, isPrivateFile = false } = query;
-            const file = await request.file();
 
-            if (!file) {
-                FastifyResponseHelper.badRequest(reply, "No image file provided", request);
+            if (!request.isMultipart()) {
+                FastifyResponseHelper.badRequest(reply, "Request must be multipart/form-data", request);
+                return;
+            }
+
+            const body = request.body as UploadBody;
+            const file = body.file;
+
+            if (!file || !file.toBuffer) {
+                FastifyResponseHelper.badRequest(reply, "No image file provided. Use 'file' field name.", request);
                 return;
             }
 
@@ -82,13 +98,28 @@ class ImageKitController {
         try {
             const query = FastifyResponseHelper.query<ImageUploadQuery>(request);
             const { folder = "misc", tags, useUniqueFileName = true, isPrivateFile = false } = query;
-            const parts = request.files();
+
+            if (!request.isMultipart()) {
+                FastifyResponseHelper.badRequest(reply, "Request must be multipart/form-data", request);
+                return;
+            }
+
+            const body = request.body as UploadMultipleBody;
+            const uploadedFiles = body.files;
+
+            if (!uploadedFiles) {
+                FastifyResponseHelper.badRequest(reply, "No files provided. Use 'files' field name.", request);
+                return;
+            }
+
+            // Handle both single file and array of files
+            const fileArray = Array.isArray(uploadedFiles) ? uploadedFiles : [uploadedFiles];
 
             const files: Array<{ buffer: Buffer; mimeType: string; originalName: string }> = [];
 
-            for await (const part of parts) {
-                const buffer = await part.toBuffer();
-                if (ALLOWED_IMAGE_TYPES.includes(part.mimetype)) {
+            for (const part of fileArray) {
+                if (part.toBuffer && ALLOWED_IMAGE_TYPES.includes(part.mimetype)) {
+                    const buffer = await part.toBuffer();
                     files.push({
                         buffer,
                         mimeType: part.mimetype,

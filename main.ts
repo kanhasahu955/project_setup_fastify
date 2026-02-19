@@ -62,7 +62,7 @@ class Application {
                     removeAdditional: 'all',
                     coerceTypes: true,
                     useDefaults: true,
-                    keywords: ['example']
+                    keywords: ['example', 'isFile']
                 }
             }
         };
