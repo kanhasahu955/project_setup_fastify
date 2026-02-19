@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { userController } from "@/controllers/user.controller";
-import { UserRouteSchemas } from "@/utils/swagger.util";
+import { UserRouteSchemas } from "@/schemas/user.schema";
 
 export async function userRoutes(app: FastifyInstance) {
     // Auth routes
