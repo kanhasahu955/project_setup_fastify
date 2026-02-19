@@ -1,27 +1,323 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mongodb"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
+/////////////////////////
+// ENUMS
+/////////////////////////
+
+enum UserRole {
+  BUYER
+  OWNER
+  AGENT
+  BUILDER
+  ADMIN
+}
+
+enum LeadSource {
+  CHAT
+  CALL
+  AI_ASSISTANT
+  DIRECT_ENQUIRY
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SITE_VISIT
+  CLOSED
+  LOST
+}
+
+enum PlanType {
+  FREE
+  AGENT_BASIC
+  AGENT_PRO
+  BUILDER_PRO
+}
+
+enum ListingType {
+  SALE
+  RENT
+  LEASE
+}
+
+enum PropertyCondition {
+  NEW
+  RESALE
+  UNDER_CONSTRUCTION
+  READY_TO_MOVE
+}
+
+enum PropertyType {
+  APARTMENT
+  INDEPENDENT_HOUSE
+  VILLA
+  STUDIO_APARTMENT
+  PENTHOUSE
+  BUILDER_FLOOR
+  OFFICE_SPACE
+  SHOP
+  SHOWROOM
+  WAREHOUSE
+  INDUSTRIAL_BUILDING
+  CO_WORKING
+  RESIDENTIAL_PLOT
+  COMMERCIAL_PLOT
+  AGRICULTURAL_LAND
+  PG
+  HOSTEL
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  UNDER_REVIEW
+  SOLD
+  RENTED
+  EXPIRED
+  REJECTED
+  BLOCKED
+  ARCHIVED
+}
+
+enum FurnishingType {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+}
+
+enum AmenityCategory {
+  BASIC
+  SECURITY
+  LIFESTYLE
+  SPORTS
+  POWER_BACKUP
+  WATER_SUPPLY
+}
+
+/////////////////////////
+// MODELS
+/////////////////////////
 
 model User {
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
-  email String  @unique
-  name  String?
-  posts Post[]
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  email    String   @unique
+  phone    String   @unique
+  password String?
+  role     UserRole @default(BUYER)
+
+  isVerified Boolean @default(false)
+  isBlocked  Boolean @default(false)
+  avatar     String?
+  lastLogin  DateTime?
+
+  profile       Profile?
+  listings      Listing[]
+  subscriptions Subscription[]
+  projects      Project[]
+
+  leadsAsBuyer Lead[] @relation("BuyerLeads")
+  leadsAsOwner Lead[] @relation("OwnerLeads")
+
+  reviewsGiven    Review[] @relation("Reviewer")
+  reviewsReceived Review[] @relation("ReviewTarget")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Post {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User    @relation(fields: [authorId], references: [id])
-  authorId  String  @db.ObjectId
+model Project {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String @unique
+  description String
+  city        String
+  locality    String
+  latitude    Float
+  longitude   Float
+
+  builderId String @db.ObjectId
+  builder   User   @relation(fields: [builderId], references: [id])
+
+  totalUnits     Int?
+  possessionDate DateTime?
+  reraNumber     String?
+
+  listings Listing[]
+
+  createdAt DateTime @default(now())
 }
 
+model Listing {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  slug        String @unique
+  description String
 
+  price        Float
+  pricePerSqft Float?
+  listingType  ListingType
+  propertyType PropertyType
+  condition    PropertyCondition?
+  status       ListingStatus @default(ACTIVE)
+
+  bedrooms    Int?
+  bathrooms   Int?
+  balconies   Int?
+  floor       Int?
+  totalFloors Int?
+
+  area        Float?
+  carpetArea  Float?
+  builtUpArea Float?
+
+  furnishing FurnishingType?
+  facing     String?
+
+  city      String
+  locality  String
+  state     String
+  pincode   String?
+  latitude  Float
+  longitude Float
+
+  isVerified  Boolean @default(false)
+  isFeatured  Boolean @default(false)
+  boostExpiry DateTime?
+  expiryDate  DateTime?
+  deletedAt   DateTime?
+  views       Int      @default(0)
+  clicks      Int      @default(0)
+
+  ownerId String @db.ObjectId
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  projectId String?  @db.ObjectId
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  images    ListingImage[]
+  amenities AmenityOnListing[]
+  leads     Lead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lead {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  listingId String @db.ObjectId
+  buyerId   String @db.ObjectId
+  ownerId   String @db.ObjectId
+
+  message String?
+  source  LeadSource
+  status  LeadStatus @default(NEW)
+
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  buyer   User    @relation("BuyerLeads", fields: [buyerId], references: [id])
+  owner   User    @relation("OwnerLeads", fields: [ownerId], references: [id])
+}
+
+model Subscription {
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId String   @db.ObjectId
+  plan   PlanType
+  expiry DateTime
+  active Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ListingImage {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String @db.ObjectId
+  url       String
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id])
+}
+
+model Amenity {
+  id       String          @id @default(auto()) @map("_id") @db.ObjectId
+  name     String          @unique
+  icon     String?
+  category AmenityCategory
+
+  listings AmenityOnListing[]
+}
+
+model AmenityOnListing {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String @db.ObjectId
+  amenityId String @db.ObjectId
+
+  isHighlighted Boolean  @default(false)
+  verified      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  amenity Amenity @relation(fields: [amenityId], references: [id])
+
+  @@unique([listingId, amenityId])
+}
+
+model Profile {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+
+  bio             String?
+  companyName     String?
+  designation     String?
+  experienceYears Int?
+
+  reraNumber String?
+  gstNumber  String?
+
+  address String?
+  city    String?
+  state   String?
+  pincode String?
+
+  website     String?
+  facebookUrl String?
+  linkedinUrl String?
+
+  isReraVerified    Boolean @default(false)
+  isCompanyVerified Boolean @default(false)
+
+  rating       Float @default(0)
+  totalReviews Int   @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int
+  comment   String?
+
+  reviewerId String @db.ObjectId
+  userId     String @db.ObjectId
+
+  reviewer User @relation("Reviewer", fields: [reviewerId], references: [id])
+  user     User @relation("ReviewTarget", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}

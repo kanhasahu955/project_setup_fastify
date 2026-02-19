@@ -19,6 +19,10 @@ interface EnvConfig {
 	JWT_EXPIRES_IN: string;
 	USE_HTTPS: boolean;
 	API_URL: string;
+	// Mail Configuration (Gmail)
+	SMTP_USER: string;
+	SMTP_PASS: string;
+	MAIL_FROM_NAME: string;
 }
 
 class Environment implements EnvConfig {
@@ -33,6 +37,10 @@ class Environment implements EnvConfig {
 	public readonly JWT_EXPIRES_IN: string;
 	public readonly USE_HTTPS: boolean;
 	public readonly API_URL: string;
+	// Mail Configuration (Gmail)
+	public readonly SMTP_USER: string;
+	public readonly SMTP_PASS: string;
+	public readonly MAIL_FROM_NAME: string;
 
 	constructor() {
 		this.PORT = this.getNumber("PORT", 3000);
@@ -52,6 +60,10 @@ class Environment implements EnvConfig {
 		this.USE_HTTPS = this.getBoolean("USE_HTTPS", false);
 		// Render provides RENDER_EXTERNAL_URL automatically
 		this.API_URL = this.getString("API_URL", process.env.RENDER_EXTERNAL_URL || "");
+		// Mail Configuration (Gmail)
+		this.SMTP_USER = this.getString("SMTP_USER", "");
+		this.SMTP_PASS = this.getString("SMTP_PASS", "");
+		this.MAIL_FROM_NAME = this.getString("MAIL_FROM_NAME", "Live Bhoomi");
 	}
 
 	private getString(key: string, defaultValue?: string): string {
