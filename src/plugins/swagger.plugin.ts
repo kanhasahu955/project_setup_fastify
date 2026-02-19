@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { env } from '@/config/env.config';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
+import scalarFastify from '@scalar/fastify-api-reference';
 
 
 export async function registerSwagger(app: FastifyInstance) {
@@ -293,7 +294,27 @@ export async function registerSwagger(app: FastifyInstance) {
         transformSpecificationClone: true
     });
 
-    app.log.info('📝 Swagger documentation available at /documentation');
+    // Register Scalar API Reference (Modern UI with form inputs like Postman)
+    await app.register(scalarFastify, {
+        routePrefix: '/reference',
+        configuration: {
+            title: 'Live Bhoomi API',
+            theme: 'purple',
+            layout: 'modern',
+            defaultHttpClient: {
+                targetKey: 'node',
+                clientKey: 'fetch',
+            },
+            hideModels: false,
+            hideDownloadButton: false,
+            darkMode: true,
+            forceDarkModeState: 'dark',
+            showSidebar: true,
+            searchHotKey: 'k',
+        },
+    });
+
+    app.log.info('📝 Swagger UI available at /documentation');
+    app.log.info('🎨 Scalar API Reference available at /reference');
     app.log.info('📋 JSON schema available at /documentation/json');
-    app.log.info('📄 YAML schema available at /documentation/yaml');
 }

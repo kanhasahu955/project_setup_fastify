@@ -13,6 +13,21 @@ export interface ApiResponse<T = any> {
   requestId?: string;
 }
 
+export interface ValidationError {
+  field: string;
+  message: string;
+  value?: any;
+  constraint?: string;
+}
+
+export interface ValidationErrorResponse {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  errors: ValidationError[];
+  requestId?: string;
+}
+
 export class FastifyResponseHelper {
   static ok<T>(reply: FastifyReply, data: T, message = 'Success', request?: FastifyRequest): void {
     this.sendResponse(reply, { success: true, message, data, statusCode: HttpStatusCode.OK }, request);
@@ -33,6 +48,17 @@ export class FastifyResponseHelper {
   // 4xx Client Errors
   static badRequest(reply: FastifyReply, message = 'Bad Request', request?: FastifyRequest): void {
     this.sendResponse(reply, { success: false, message, statusCode: HttpStatusCode.BAD_REQUEST }, request);
+  }
+
+  static validationError(reply: FastifyReply, errors: ValidationError[], message = 'Validation failed', request?: FastifyRequest): void {
+    const response: ValidationErrorResponse = {
+      success: false,
+      message,
+      statusCode: HttpStatusCode.BAD_REQUEST,
+      errors,
+      ...(request && (request as any).requestId && { requestId: (request as any).requestId }),
+    };
+    reply.code(HttpStatusCode.BAD_REQUEST).send(response);
   }
 
   static unauthorized(reply: FastifyReply, message = 'Unauthorized', request?: FastifyRequest): void {

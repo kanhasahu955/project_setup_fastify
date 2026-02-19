@@ -33,11 +33,35 @@ export const formatError = (error: any, statusCode: number = 500) => {
     return {
         success: false,
         statusCode,
-        error: message,
+        message,
         details: !_.isEmpty(details) ? details : undefined,
         timestamp: new Date().toISOString()
     };
 };
+
+export interface ValidationErrorItem {
+    field: string;
+    message: string;
+    value?: any;
+    constraint?: string;
+}
+
+export const formatValidationError = (errors: ValidationErrorItem[], message: string = 'Validation failed') => {
+    return {
+        success: false,
+        statusCode: 400,
+        message,
+        errors,
+        timestamp: new Date().toISOString()
+    };
+};
+
+export const createValidationError = (field: string, message: string, value?: any, constraint?: string): ValidationErrorItem => ({
+    field,
+    message,
+    ...(value !== undefined && { value }),
+    ...(constraint && { constraint }),
+});
 
 export const cleanObject = (obj: any): any => {
     return _.transform(obj, (result: any, value: any, key: any) => {
