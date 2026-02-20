@@ -8,6 +8,14 @@ import type {
     UserListOptions,
 } from "@/types/user.types";
 import type { UserRole } from "../../generated/prisma/client";
+import {
+    aadharKycSchema,
+    panKycSchema,
+    verifyKycSchema,
+    type AadharKycInput,
+    type PanKycInput,
+    type VerifyKycInput,
+} from "@/validations/auth.validation";
 
 interface IdParam {
     id: string;
@@ -228,6 +236,102 @@ class UserController {
             FastifyResponseHelper.ok(reply, { exists }, "Check completed", request);
         } catch (error: any) {
             FastifyResponseHelper.badRequest(reply, error.message, request);
+        }
+    }
+
+    // KYC Methods
+    async submitAadharKyc(request: FastifyRequest<{ Params: IdParam }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+            const body = request.body as AadharKycInput;
+
+            const validation = aadharKycSchema.safeParse(body);
+            if (!validation.success) {
+                const errors = validation.error.issues.map((issue) => ({
+                    field: issue.path.join("."),
+                    message: issue.message,
+                }));
+                FastifyResponseHelper.validationError(reply, errors, "Validation failed", request);
+                return;
+            }
+
+            const kyc = await userService.submitAadharKyc(id, validation.data);
+            FastifyResponseHelper.ok(reply, kyc, "Aadhar details submitted successfully", request);
+        } catch (error: any) {
+            if (error.message === "User not found") {
+                FastifyResponseHelper.notFound(reply, error.message, request);
+            } else {
+                FastifyResponseHelper.badRequest(reply, error.message, request);
+            }
+        }
+    }
+
+    async submitPanKyc(request: FastifyRequest<{ Params: IdParam }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+            const body = request.body as PanKycInput;
+
+            const validation = panKycSchema.safeParse(body);
+            if (!validation.success) {
+                const errors = validation.error.issues.map((issue) => ({
+                    field: issue.path.join("."),
+                    message: issue.message,
+                }));
+                FastifyResponseHelper.validationError(reply, errors, "Validation failed", request);
+                return;
+            }
+
+            const kyc = await userService.submitPanKyc(id, validation.data);
+            FastifyResponseHelper.ok(reply, kyc, "PAN details submitted successfully", request);
+        } catch (error: any) {
+            if (error.message === "User not found") {
+                FastifyResponseHelper.notFound(reply, error.message, request);
+            } else {
+                FastifyResponseHelper.badRequest(reply, error.message, request);
+            }
+        }
+    }
+
+    async getKycStatus(request: FastifyRequest<{ Params: IdParam }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+            const kyc = await userService.getKycStatus(id);
+            FastifyResponseHelper.ok(reply, kyc, "KYC details retrieved", request);
+        } catch (error: any) {
+            if (error.message === "User not found") {
+                FastifyResponseHelper.notFound(reply, error.message, request);
+            } else {
+                FastifyResponseHelper.badRequest(reply, error.message, request);
+            }
+        }
+    }
+
+    async verifyKyc(request: FastifyRequest<{ Params: IdParam }>, reply: FastifyReply) {
+        try {
+            const { id } = request.params;
+            const body = request.body as VerifyKycInput;
+
+            const validation = verifyKycSchema.safeParse(body);
+            if (!validation.success) {
+                const errors = validation.error.issues.map((issue) => ({
+                    field: issue.path.join("."),
+                    message: issue.message,
+                }));
+                FastifyResponseHelper.validationError(reply, errors, "Validation failed", request);
+                return;
+            }
+
+            // TODO: Get admin ID from authenticated user
+            const adminId = "admin"; // Replace with actual admin ID from auth
+
+            const kyc = await userService.verifyKyc(id, adminId, validation.data);
+            FastifyResponseHelper.ok(reply, kyc, "KYC status updated", request);
+        } catch (error: any) {
+            if (error.message === "User not found") {
+                FastifyResponseHelper.notFound(reply, error.message, request);
+            } else {
+                FastifyResponseHelper.badRequest(reply, error.message, request);
+            }
         }
     }
 }

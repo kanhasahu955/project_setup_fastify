@@ -2,7 +2,7 @@ import prisma from "@/config/prisma.config";
 import { hashPassword, comparePassword } from "@/utils/password.util";
 import { mailService } from "@/services/mail.service";
 import { omitFields } from "@/utils/lodash.util";
-import type { User, UserRole } from "../../generated/prisma/client";
+import type { User } from "../../generated/prisma/client";
 import type { RegisterInput, VerifyOtpInput, LoginInput } from "@/validations/auth.validation";
 
 const OTP_EXPIRY_MINUTES = 10;
@@ -118,7 +118,7 @@ class AuthService {
             throw new Error(`Invalid OTP. ${remainingAttempts} attempt(s) remaining.`);
         }
 
-        // Create user
+        // Create user with profile
         const user = await prisma.user.create({
             data: {
                 name: otpRecord.name,
@@ -126,7 +126,19 @@ class AuthService {
                 phone: otpRecord.phone,
                 password: otpRecord.password,
                 role: otpRecord.role,
-                isVerified: true,
+                isEmailVerified: true,
+                isPhoneVerified: false,
+                profile: {
+                    create: {},
+                },
+            },
+            include: {
+                profile: true,
+                subscriptions: {
+                    where: { active: true },
+                    orderBy: { expiry: "desc" },
+                    take: 1,
+                },
             },
         });
 
@@ -191,6 +203,14 @@ class AuthService {
 
         const user = await prisma.user.findFirst({
             where: isEmail ? { email: identifier } : { phone: identifier },
+            include: {
+                profile: true,
+                subscriptions: {
+                    where: { active: true },
+                    orderBy: { expiry: "desc" },
+                    take: 1,
+                },
+            },
         });
 
         if (!user || !user.password) {
@@ -201,7 +221,7 @@ class AuthService {
             throw new Error("Your account has been blocked. Please contact support.");
         }
 
-        if (!user.isVerified) {
+        if (!user.isEmailVerified) {
             throw new Error("Please verify your email before logging in.");
         }
 

@@ -36,7 +36,8 @@ export interface UpdateProfileInput {
 
 export interface UserListOptions extends ListOptions {
     role?: UserRole;
-    isVerified?: boolean;
+    isEmailVerified?: boolean;
+    isPhoneVerified?: boolean;
     isBlocked?: boolean;
     sortBy?: keyof User;
 }

@@ -1,15 +1,16 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { registerLogger, loggerConfig } from '@/plugins/logger.plugin';
 import { registerSwagger } from '@/plugins/swagger.plugin';
+import { registerGraphQL } from '@/plugins/graphql.plugin';
 import { connectPrisma, disconnectPrisma } from '@/config/prisma.config';
 import { registerRoutes } from '@/routes';
 import { env } from "@/config/env.config";
 import { registerSecurity } from '@/plugins/cors.plugin';
+import { initializeFirebase } from '@/config/firebase.config';
+import { initializeImageKit } from '@/config/imagekit.config';
 import { certificatesExist, loadCertificates, getCertificatePaths } from '@/config/certificate.config';
 import requestResponsePlugin from '@/plugins/request-response.plugin';
 import multipartPlugin from '@/plugins/multipart.plugin';
-import { initializeFirebase } from '@/config/firebase.config';
-import { initializeImageKit } from '@/config/imagekit.config';
 
 
 class Application {
@@ -115,6 +116,9 @@ class Application {
         this.app.log.info('Registering Request/Response Plugin...');
         await this.app.register(requestResponsePlugin);
 
+        this.app.log.info('Registering GraphQL...');
+        await registerGraphQL(this.app);
+
         this.app.log.info('Registering routes...');
         await this.app.register(registerRoutes, { prefix: '/api/v1' });
     }
@@ -126,7 +130,9 @@ class Application {
         this.app.log.info(`
             🚀 Server is running!
             🔒 HTTPS: ${this.useHttps ? 'Enabled' : 'Disabled'}
-            📝 API Documentation: ${protocol}://localhost:${this.port}/documentation
+            📝 REST API Docs: ${protocol}://localhost:${this.port}/documentation
+            🔷 GraphQL: ${protocol}://localhost:${this.port}/graphql
+            🔷 GraphiQL: ${protocol}://localhost:${this.port}/graphiql
             🏥 Health Check: ${protocol}://localhost:${this.port}/api/v1/health
             🌍 Environment: ${env.NODE_ENV}
         `);

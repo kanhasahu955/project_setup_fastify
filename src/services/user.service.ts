@@ -83,13 +83,41 @@ class UserService {
         return this.sanitizeUser(user)!;
     }
 
-    async findById(id: string, includeProfile = false): Promise<SafeUser | null> {
+    async findById(
+        id: string,
+        includes?: { profile?: boolean; subscriptions?: boolean } | boolean
+    ): Promise<(SafeUser & { profile?: any; subscriptions?: any }) | null> {
+        let include: any = undefined;
+        
+        if (typeof includes === "boolean") {
+            include = includes ? { profile: true } : undefined;
+        } else if (includes) {
+            include = {};
+            if (includes.profile) include.profile = true;
+            if (includes.subscriptions) {
+                include.subscriptions = {
+                    where: { isActive: true },
+                    orderBy: { createdAt: "desc" as const },
+                };
+            }
+        }
+
         const user = await prisma.user.findUnique({
             where: { id },
-            include: includeProfile ? { profile: true } : undefined,
+            include,
         });
 
-        return this.sanitizeUser(user);
+        if (!user) return null;
+        
+        const sanitized = this.sanitizeUser(user) as any;
+        if (include?.profile && (user as any).profile) {
+            sanitized.profile = (user as any).profile;
+        }
+        if (include?.subscriptions && (user as any).subscriptions) {
+            sanitized.subscriptions = (user as any).subscriptions;
+        }
+        
+        return sanitized;
     }
 
     async findByEmail(email: string): Promise<SafeUser | null> {
@@ -183,7 +211,7 @@ class UserService {
     }
 
     async list(options: UserListOptions = {}): Promise<PaginatedResult<SafeUser>> {
-        const { page = 1, limit = 10, search, role, isVerified, isBlocked, sortBy = "createdAt", sortOrder = "desc" } = options;
+        const { page = 1, limit = 10, search, role, isEmailVerified, isBlocked, sortBy = "createdAt", sortOrder = "desc" } = options;
 
         const skip = (page - 1) * limit;
 
@@ -196,7 +224,7 @@ class UserService {
                 ],
             }),
             ...(role && { role }),
-            ...(!_.isNil(isVerified) && { isVerified }),
+            ...(!_.isNil(isEmailVerified) && { isEmailVerified }),
             ...(!_.isNil(isBlocked) && { isBlocked }),
         };
 
@@ -246,7 +274,7 @@ class UserService {
     async verify(id: string): Promise<SafeUser> {
         const user = await prisma.user.update({
             where: { id },
-            data: { isVerified: true },
+            data: { isEmailVerified: true },
         });
 
         return this.sanitizeUser(user)!;
@@ -303,7 +331,7 @@ class UserService {
     async getStats(): Promise<UserStats> {
         const [total, verified, blocked, roleStats] = await Promise.all([
             prisma.user.count(),
-            prisma.user.count({ where: { isVerified: true } }),
+            prisma.user.count({ where: { isEmailVerified: true } }),
             prisma.user.count({ where: { isBlocked: true } }),
             prisma.user.groupBy({
                 by: ["role"],
@@ -342,6 +370,119 @@ class UserService {
             where: { phone },
         });
         return count > 0;
+    }
+
+    // KYC Methods
+    async submitAadharKyc(
+        userId: string,
+        data: { aadharNumber: string; aadharName: string; aadharDob: string; aadharDocUrl?: string }
+    ) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const maskedAadhar = `XXXX-XXXX-${data.aadharNumber.slice(-4)}`;
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                kyc: {
+                    ...user.kyc,
+                    aadharNumber: maskedAadhar,
+                    aadharName: data.aadharName,
+                    aadharDob: data.aadharDob,
+                    aadharDocUrl: data.aadharDocUrl,
+                    isAadharVerified: false,
+                    kycStatus: user.kyc?.isPanVerified ? "SUBMITTED" : "SUBMITTED",
+                },
+            },
+        });
+
+        return updatedUser.kyc;
+    }
+
+    async submitPanKyc(
+        userId: string,
+        data: { panNumber: string; panName: string; panDocUrl?: string }
+    ) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                kyc: {
+                    ...user.kyc,
+                    panNumber: data.panNumber,
+                    panName: data.panName,
+                    panDocUrl: data.panDocUrl,
+                    isPanVerified: false,
+                    kycStatus: "SUBMITTED",
+                },
+            },
+        });
+
+        return updatedUser.kyc;
+    }
+
+    async getKycStatus(userId: string) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { kyc: true },
+        });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        return user.kyc || {
+            kycStatus: "PENDING",
+            isAadharVerified: false,
+            isPanVerified: false,
+        };
+    }
+
+    async verifyKyc(
+        userId: string,
+        adminId: string,
+        data: { kycStatus: string; kycRemarks?: string; verifyAadhar?: boolean; verifyPan?: boolean }
+    ) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const now = new Date();
+        const kycUpdate: any = {
+            ...user.kyc,
+            kycStatus: data.kycStatus,
+            kycRemarks: data.kycRemarks,
+        };
+
+        if (data.kycStatus === "VERIFIED") {
+            kycUpdate.kycVerifiedAt = now;
+            kycUpdate.kycVerifiedBy = adminId;
+        }
+
+        if (data.verifyAadhar) {
+            kycUpdate.isAadharVerified = true;
+            kycUpdate.aadharVerifiedAt = now;
+        }
+
+        if (data.verifyPan) {
+            kycUpdate.isPanVerified = true;
+            kycUpdate.panVerifiedAt = now;
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { kyc: kycUpdate },
+        });
+
+        return updatedUser.kyc;
     }
 }
 

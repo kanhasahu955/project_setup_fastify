@@ -19,20 +19,26 @@ export const UserRoleEnum = ["BUYER", "OWNER", "AGENT", "BUILDER", "ADMIN"] as c
 // MODEL SCHEMAS
 // ============================================
 
-export const UserSchema: ObjectSchema = {
+export const PlanTypeEnum = ["FREE", "AGENT_BASIC", "AGENT_PRO", "BUILDER_PRO"] as const;
+export const KycStatusEnum = ["PENDING", "SUBMITTED", "UNDER_REVIEW", "VERIFIED", "REJECTED"] as const;
+
+export const KycDetailsSchema: ObjectSchema = {
     type: "object",
     properties: {
-        id: { type: "string", example: "507f1f77bcf86cd799439011" },
-        name: { type: "string", example: "John Doe" },
-        email: { type: "string", format: "email", example: "john@example.com" },
-        phone: { type: "string", example: "9876543210" },
-        role: { type: "string", enum: [...UserRoleEnum], example: "BUYER" },
-        isVerified: { type: "boolean", example: false },
-        isBlocked: { type: "boolean", example: false },
-        avatar: { type: "string", format: "uri", nullable: true },
-        lastLogin: { type: "string", format: "date-time", nullable: true },
-        createdAt: { type: "string", format: "date-time" },
-        updatedAt: { type: "string", format: "date-time" },
+        aadharNumber: { type: "string", nullable: true, description: "Masked Aadhar number (last 4 digits)" },
+        aadharName: { type: "string", nullable: true },
+        aadharDob: { type: "string", nullable: true },
+        aadharDocUrl: { type: "string", format: "uri", nullable: true },
+        isAadharVerified: { type: "boolean", example: false },
+        aadharVerifiedAt: { type: "string", format: "date-time", nullable: true },
+        panNumber: { type: "string", nullable: true, description: "PAN number" },
+        panName: { type: "string", nullable: true },
+        panDocUrl: { type: "string", format: "uri", nullable: true },
+        isPanVerified: { type: "boolean", example: false },
+        panVerifiedAt: { type: "string", format: "date-time", nullable: true },
+        kycStatus: { type: "string", enum: [...KycStatusEnum], example: "PENDING" },
+        kycRemarks: { type: "string", nullable: true },
+        kycVerifiedAt: { type: "string", format: "date-time", nullable: true },
     },
 };
 
@@ -58,6 +64,38 @@ export const ProfileSchema: ObjectSchema = {
         isCompanyVerified: { type: "boolean", example: false },
         rating: { type: "number", example: 4.5 },
         totalReviews: { type: "integer", example: 10 },
+        createdAt: { type: "string", format: "date-time" },
+        updatedAt: { type: "string", format: "date-time" },
+    },
+};
+
+export const SubscriptionSchema: ObjectSchema = {
+    type: "object",
+    properties: {
+        id: { type: "string", example: "507f1f77bcf86cd799439013" },
+        userId: { type: "string", example: "507f1f77bcf86cd799439011" },
+        plan: { type: "string", enum: [...PlanTypeEnum], example: "FREE" },
+        expiry: { type: "string", format: "date-time" },
+        active: { type: "boolean", example: true },
+    },
+};
+
+export const UserSchema: ObjectSchema = {
+    type: "object",
+    properties: {
+        id: { type: "string", example: "507f1f77bcf86cd799439011" },
+        name: { type: "string", example: "John Doe" },
+        email: { type: "string", format: "email", example: "john@example.com" },
+        phone: { type: "string", example: "9876543210" },
+        role: { type: "string", enum: [...UserRoleEnum], example: "BUYER" },
+        isEmailVerified: { type: "boolean", example: true },
+        isPhoneVerified: { type: "boolean", example: false },
+        isBlocked: { type: "boolean", example: false },
+        avatar: { type: "string", format: "uri", nullable: true },
+        lastLogin: { type: "string", format: "date-time", nullable: true },
+        kyc: KycDetailsSchema as any,
+        profile: ProfileSchema as any,
+        subscriptions: { type: "array", items: SubscriptionSchema as any },
         createdAt: { type: "string", format: "date-time" },
         updatedAt: { type: "string", format: "date-time" },
     },
@@ -164,6 +202,38 @@ export const UpdateRoleBody: ObjectSchema = {
     },
 };
 
+export const SubmitAadharKycBody: ObjectSchema = {
+    type: "object",
+    required: ["aadharNumber", "aadharName", "aadharDob"],
+    properties: {
+        aadharNumber: { type: "string", minLength: 12, maxLength: 12, description: "12-digit Aadhar number" },
+        aadharName: { type: "string", minLength: 2, maxLength: 100, description: "Name as on Aadhar" },
+        aadharDob: { type: "string", description: "Date of birth (DD-MM-YYYY)" },
+        aadharDocUrl: { type: "string", format: "uri", description: "Aadhar document image URL" },
+    },
+};
+
+export const SubmitPanKycBody: ObjectSchema = {
+    type: "object",
+    required: ["panNumber", "panName"],
+    properties: {
+        panNumber: { type: "string", minLength: 10, maxLength: 10, description: "10-character PAN number" },
+        panName: { type: "string", minLength: 2, maxLength: 100, description: "Name as on PAN" },
+        panDocUrl: { type: "string", format: "uri", description: "PAN document image URL" },
+    },
+};
+
+export const VerifyKycBody: ObjectSchema = {
+    type: "object",
+    required: ["kycStatus"],
+    properties: {
+        kycStatus: { type: "string", enum: [...KycStatusEnum], description: "KYC verification status" },
+        kycRemarks: { type: "string", maxLength: 500, description: "Remarks for rejection or approval" },
+        verifyAadhar: { type: "boolean", description: "Verify Aadhar" },
+        verifyPan: { type: "boolean", description: "Verify PAN" },
+    },
+};
+
 export const UpdateProfileBody: ObjectSchema = {
     type: "object",
     properties: {
@@ -193,7 +263,8 @@ export const UserListQuery: ObjectSchema = {
         ...PaginationQuery.properties,
         search: { type: "string", description: "Search by name, email, or phone" },
         role: { type: "string", enum: [...UserRoleEnum], description: "Filter by role" },
-        isVerified: { type: "boolean", description: "Filter by verification status" },
+        isEmailVerified: { type: "boolean", description: "Filter by email verification status" },
+        isPhoneVerified: { type: "boolean", description: "Filter by phone verification status" },
         isBlocked: { type: "boolean", description: "Filter by blocked status" },
         sortBy: { type: "string", default: "createdAt", description: "Field to sort by" },
     },
@@ -392,6 +463,53 @@ export const UserRouteSchemas = {
                 },
             }, "Check completed"),
             400: ErrorResponses.ValidationError,
+        },
+    }),
+
+    // KYC Routes
+    submitAadharKyc: buildSchema({
+        description: "Submit Aadhar card details for KYC verification",
+        tags: ["Users", "KYC"],
+        params: IdParam,
+        body: SubmitAadharKycBody,
+        response: {
+            200: successResponse(KycDetailsSchema, "Aadhar details submitted successfully"),
+            400: ErrorResponses.ValidationError,
+            404: ErrorResponses.NotFound,
+        },
+    }),
+
+    submitPanKyc: buildSchema({
+        description: "Submit PAN card details for KYC verification",
+        tags: ["Users", "KYC"],
+        params: IdParam,
+        body: SubmitPanKycBody,
+        response: {
+            200: successResponse(KycDetailsSchema, "PAN details submitted successfully"),
+            400: ErrorResponses.ValidationError,
+            404: ErrorResponses.NotFound,
+        },
+    }),
+
+    getKycStatus: buildSchema({
+        description: "Get user KYC status and details",
+        tags: ["Users", "KYC"],
+        params: IdParam,
+        response: {
+            200: successResponse(KycDetailsSchema, "KYC details retrieved"),
+            404: ErrorResponses.NotFound,
+        },
+    }),
+
+    verifyKyc: buildSchema({
+        description: "Admin: Verify or reject user KYC",
+        tags: ["Users", "KYC", "Admin"],
+        params: IdParam,
+        body: VerifyKycBody,
+        response: {
+            200: successResponse(KycDetailsSchema, "KYC status updated"),
+            400: ErrorResponses.ValidationError,
+            404: ErrorResponses.NotFound,
         },
     }),
 };

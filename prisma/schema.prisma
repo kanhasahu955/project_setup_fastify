@@ -115,10 +115,15 @@ model User {
   password String?
   role     UserRole @default(BUYER)
 
-  isVerified Boolean @default(false)
-  isBlocked  Boolean @default(false)
-  avatar     String?
-  lastLogin  DateTime?
+  // Verification status
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+  isBlocked       Boolean @default(false)
+  avatar          String?
+  lastLogin       DateTime?
+
+  // KYC Details
+  kyc KycDetails?
 
   profile       Profile?
   listings      Listing[]
@@ -133,6 +138,37 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+type KycDetails {
+  // Aadhar Card
+  aadharNumber     String?
+  aadharName       String?
+  aadharDob        String?
+  aadharDocUrl     String?
+  isAadharVerified Boolean @default(false)
+  aadharVerifiedAt DateTime?
+
+  // PAN Card
+  panNumber       String?
+  panName         String?
+  panDocUrl       String?
+  isPanVerified   Boolean @default(false)
+  panVerifiedAt   DateTime?
+
+  // Overall KYC Status
+  kycStatus     KycStatus @default(PENDING)
+  kycRemarks    String?
+  kycVerifiedAt DateTime?
+  kycVerifiedBy String?
+}
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
 }
 
 model Otp {

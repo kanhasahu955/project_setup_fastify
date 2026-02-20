@@ -33,4 +33,10 @@ export async function userRoutes(app: FastifyInstance) {
     // Profile routes
     app.get("/users/:id/profile", { schema: UserRouteSchemas.getProfile }, userController.getProfile);
     app.put("/users/:id/profile", { schema: UserRouteSchemas.upsertProfile }, userController.upsertProfile);
+
+    // KYC routes
+    app.post("/users/:id/kyc/aadhar", { schema: UserRouteSchemas.submitAadharKyc }, userController.submitAadharKyc);
+    app.post("/users/:id/kyc/pan", { schema: UserRouteSchemas.submitPanKyc }, userController.submitPanKyc);
+    app.get("/users/:id/kyc", { schema: UserRouteSchemas.getKycStatus }, userController.getKycStatus);
+    app.patch("/users/:id/kyc/verify", { schema: UserRouteSchemas.verifyKyc }, userController.verifyKyc);
 }
