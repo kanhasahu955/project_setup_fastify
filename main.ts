@@ -1,3 +1,15 @@
+// Set DATABASE_TYPE from command line argument before importing env.config
+// Environment variable takes precedence, but --db= argument can override
+if (!process.env.DATABASE_TYPE) {
+	const dbArg = process.argv.find((arg) => arg.startsWith("--db="));
+	if (dbArg) {
+		const dbType = dbArg.split("=")[1];
+		if (dbType === "mongodb" || dbType === "mysql") {
+			process.env.DATABASE_TYPE = dbType;
+		}
+	}
+}
+
 import Fastify, { FastifyInstance } from 'fastify';
 import { registerLogger, loggerConfig } from '@/plugins/logger.plugin';
 import { registerSwagger } from '@/plugins/swagger.plugin';
@@ -154,6 +166,8 @@ class Application {
 const PORT = env.PORT;
 const HOST = env.HOST;
 const USE_HTTPS = env.USE_HTTPS;
+
+console.log(`🗄️  Using database: ${env.DATABASE_TYPE}`);
 
 const application = new Application(PORT, HOST, USE_HTTPS);
 application.start();

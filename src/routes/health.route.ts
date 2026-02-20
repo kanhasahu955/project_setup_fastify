@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { formatDate } from '@/utils/date.util';
 import { FastifyResponseHelper } from '@/helpers/httpStatus';
 import prisma from '@/config/prisma.config';
+import { env } from '@/config/env.config';
 
 // Cache for database status (avoids pinging DB on every request)
 let dbStatusCache = {
@@ -19,11 +20,17 @@ async function checkDatabaseStatus(app: FastifyInstance): Promise<string> {
     }
 
     try {
-        await prisma.$runCommandRaw({ ping: 1 });
+        if (env.DATABASE_TYPE === 'mysql') {
+            // MySQL: Use SQL query
+            await prisma.$queryRaw`SELECT 1`;
+        } else {
+            // MongoDB: Use runCommandRaw
+            await prisma.$runCommandRaw({ ping: 1 });
+        }
         dbStatusCache.status = 'connected';
-    } catch (error) {
+    } catch (error: any) {
         dbStatusCache.status = 'disconnected';
-        app.log.error(`Health check failed: ${error}`);
+        app.log.error(`Health check failed: ${error?.message || error}`);
     }
     
     dbStatusCache.lastCheck = now;

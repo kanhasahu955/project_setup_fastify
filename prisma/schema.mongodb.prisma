@@ -103,6 +103,14 @@ enum AmenityCategory {
   WATER_SUPPLY
 }
 
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
 /////////////////////////
 // MODELS
 /////////////////////////
@@ -161,14 +169,6 @@ type KycDetails {
   kycRemarks    String?
   kycVerifiedAt DateTime?
   kycVerifiedBy String?
-}
-
-enum KycStatus {
-  PENDING
-  SUBMITTED
-  UNDER_REVIEW
-  VERIFIED
-  REJECTED
 }
 
 model Otp {

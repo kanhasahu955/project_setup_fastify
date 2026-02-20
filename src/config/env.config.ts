@@ -7,11 +7,16 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 export type NodeEnv = "development" | "production" | "test";
 
+export type DatabaseType = "mongodb" | "mysql";
+
 interface EnvConfig {
 	PORT: number;
 	HOST: string;
 	NODE_ENV: NodeEnv;
+	DATABASE_TYPE: DatabaseType;
 	DATABASE_URL: string;
+	DATABASE_URL_MONGODB: string;
+	DATABASE_URL_MYSQL: string;
 	LOG_LEVEL: string;
 	FRONTEND_URL: string[];
 	COOKIE_SECRET: string;
@@ -38,7 +43,10 @@ class Environment implements EnvConfig {
 	public readonly PORT: number;
 	public readonly HOST: string;
 	public readonly NODE_ENV: NodeEnv;
+	public readonly DATABASE_TYPE: DatabaseType;
 	public readonly DATABASE_URL: string;
+	public readonly DATABASE_URL_MONGODB: string;
+	public readonly DATABASE_URL_MYSQL: string;
 	public readonly LOG_LEVEL: string;
 	public readonly FRONTEND_URL: string[];
 	public readonly COOKIE_SECRET: string;
@@ -64,7 +72,17 @@ class Environment implements EnvConfig {
 		this.PORT = this.getNumber("PORT", 3000);
 		this.HOST = this.getString("HOST", "0.0.0.0");
 		this.NODE_ENV = this.getString("NODE_ENV", "development") as NodeEnv;
-		this.DATABASE_URL = this.getString("DATABASE_URL");
+		
+		// Database Configuration
+		this.DATABASE_TYPE = (this.getString("DATABASE_TYPE", "mongodb") as DatabaseType) || "mongodb";
+		this.DATABASE_URL_MONGODB = this.getString("DATABASE_URL_MONGODB", process.env.DATABASE_URL || "");
+		this.DATABASE_URL_MYSQL = this.getString("DATABASE_URL_MYSQL", "");
+		
+		// Set DATABASE_URL based on DATABASE_TYPE
+		this.DATABASE_URL = this.DATABASE_TYPE === "mysql" 
+			? this.DATABASE_URL_MYSQL 
+			: this.DATABASE_URL_MONGODB;
+		
 		this.LOG_LEVEL = this.getString("LOG_LEVEL", "info");
 		this.FRONTEND_URL = _
 			.chain(this.getString("FRONTEND_URL", ""))
