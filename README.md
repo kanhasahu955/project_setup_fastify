@@ -1,40 +1,47 @@
 # Live Bhoomi Backend API
 
-A modern, high-performance RESTful API built with **Fastify**, **TypeScript**, **Prisma**, and **MongoDB**.
+A modern, high-performance **RESTful API** and **GraphQL API** built with **Fastify**, **TypeScript**, **Prisma**, and **MongoDB**.
 
-## Table of Contents
-
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Environment Variables](#environment-variables)
-- [SSL/HTTPS Configuration](#sslhttps-configuration)
-- [API Documentation](#api-documentation)
-- [HTTP Client Testing](#http-client-testing)
-- [HTTP Status Codes](#http-status-codes)
-- [Response Helpers](#response-helpers)
-- [Health Check Endpoints](#health-check-endpoints)
-- [Scripts](#scripts)
-
----
-
-## Features
+## 🚀 Features
 
 - 🚀 **High-performance** Fastify framework
-- 📝 **Automatic API documentation** with Swagger/OpenAPI
+- 📝 **Dual API Support** - REST API and GraphQL API
+- 🔷 **GraphQL** with Mercurius (Fastify GraphQL adapter)
+- 📚 **Automatic API documentation** with Swagger/OpenAPI
 - 🔒 **Type-safe** with TypeScript
 - 💾 **MongoDB database** with Prisma ORM
+- 🔐 **OTP-based Authentication** with email verification
+- 🆔 **KYC Verification** (Aadhar & PAN card)
 - 📊 **Colorized logging** with Pino
 - 🔄 **Hot reload** in development
 - 🔐 **SSL/HTTPS support** with self-signed certificates
 - 🛡️ **Security** with Helmet, CORS, Rate Limiting
 - 🔑 **JWT Authentication** with cookie support
+- 📸 **ImageKit Integration** for image uploads
+- 📧 **Email Service** with Resend/Nodemailer
 - 📋 **HTTP Client files** for API testing
 
 ---
 
-## Tech Stack
+## 📋 Table of Contents
+
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Project Structure](#-project-structure)
+- [Environment Variables](#-environment-variables)
+- [Database Setup](#-database-setup)
+- [API Documentation](#-api-documentation)
+- [REST API Endpoints](#-rest-api-endpoints)
+- [GraphQL API](#-graphql-api)
+- [Authentication](#-authentication)
+- [KYC Verification](#-kyc-verification)
+- [Image Upload](#-image-upload)
+- [Scripts](#-scripts)
+- [Deployment](#-deployment)
+
+---
+
+## 🛠️ Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
@@ -42,26 +49,32 @@ A modern, high-performance RESTful API built with **Fastify**, **TypeScript**, *
 | [TypeScript](https://www.typescriptlang.org/) | Type safety |
 | [Prisma](https://www.prisma.io/) | Database ORM |
 | [MongoDB](https://www.mongodb.com/) | Database |
+| [GraphQL](https://graphql.org/) | GraphQL API |
+| [Mercurius](https://mercurius.dev/) | Fastify GraphQL adapter |
 | [Zod](https://zod.dev/) | Schema validation |
 | [Pino](https://getpino.io/) | Logging |
 | [Swagger](https://swagger.io/) | API documentation |
+| [ImageKit](https://imagekit.io/) | Image hosting |
+| [Resend](https://resend.com/) | Email service |
+| [JWT](https://jwt.io/) | Authentication |
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js >= 18.x
-- npm or yarn
-- MongoDB database
+- **Node.js** >= 18.x
+- **npm** or **yarn**
+- **MongoDB** (local or cloud instance)
+- **MongoDB Replica Set** (required for Prisma transactions)
 
 ### Installation
 
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd backend
+cd project_setup_fastify
 
 # Install dependencies
 npm install
@@ -70,8 +83,13 @@ npm install
 cp .env.example .env
 # Edit .env with your configuration
 
+# Set up MongoDB Replica Set (see Database Setup section)
+
 # Generate Prisma client
 npx prisma generate
+
+# Push schema to database
+npx prisma db push
 
 # Start development server
 npm run dev
@@ -90,42 +108,60 @@ npm run dev:https
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-backend/
-├── certificates/          # SSL certificates (git-ignored)
+project_setup_fastify/
+├── certificates/              # SSL certificates (git-ignored)
 │   ├── server.key
 │   └── server.crt
-├── http/                   # HTTP client test files
-│   ├── globals.http        # Global variables
-│   ├── health.http         # Health check requests
-│   ├── api.http            # API request templates
-│   └── http-client.env.json # Environment configs
+├── http/                      # HTTP client test files
+│   ├── globals.http
+│   ├── health.http
+│   └── api.http
+├── prisma/
+│   └── schema.prisma          # Database schema
 ├── scripts/
-│   └── generate-cert.ts    # SSL certificate generator
+│   └── generate-cert.ts       # SSL certificate generator
 ├── src/
-│   ├── @types/             # TypeScript type definitions
+│   ├── @types/                # TypeScript type definitions
 │   ├── config/
-│   │   ├── env.config.ts           # Environment configuration
-│   │   ├── prisma.config.ts        # Prisma client setup
-│   │   └── certificate.config.ts   # SSL certificate utilities
+│   │   ├── env.config.ts      # Environment configuration
+│   │   ├── prisma.config.ts   # Prisma client setup
+│   │   ├── imagekit.config.ts # ImageKit configuration
+│   │   └── certificate.config.ts
+│   ├── controllers/           # Route controllers
+│   │   ├── auth.controller.ts
+│   │   ├── user.controller.ts
+│   │   └── imagekit.controller.ts
+│   ├── graphql/               # GraphQL schema & resolvers
+│   │   ├── schema.ts          # GraphQL type definitions
+│   │   ├── resolvers.ts       # GraphQL resolvers
+│   │   └── index.ts
 │   ├── helpers/
-│   │   └── httpStatus.ts           # Response helper utilities
-│   ├── hooks/              # Fastify hooks
+│   │   └── httpStatus.ts     # Response helper utilities
 │   ├── plugins/
-│   │   ├── cors.plugin.ts          # CORS & security setup
-│   │   ├── logger.plugin.ts        # Pino logger config
-│   │   ├── swagger.plugin.ts       # Swagger documentation
-│   │   └── request-response.plugin.ts
+│   │   ├── cors.plugin.ts    # CORS & security setup
+│   │   ├── logger.plugin.ts  # Pino logger config
+│   │   ├── swagger.plugin.ts # Swagger documentation
+│   │   ├── graphql.plugin.ts # GraphQL setup
+│   │   └── multipart.plugin.ts
 │   ├── routes/
-│   │   ├── index.ts                # Route registration
-│   │   └── health.route.ts         # Health check endpoints
-│   └── utils/
-│       ├── httpStatusCodes.util.ts # HTTP status code constants
-│       ├── date.util.ts            # Date utilities
-│       └── lodash.util.ts          # Lodash utilities
-├── tests/                  # Test files
+│   │   ├── index.ts          # Route registration
+│   │   ├── user.route.ts     # User & auth routes
+│   │   ├── imagekit.route.ts # Image upload routes
+│   │   └── health.route.ts
+│   ├── schemas/              # OpenAPI/Swagger schemas
+│   │   ├── user.schema.ts
+│   │   └── imagekit.schema.ts
+│   ├── services/             # Business logic
+│   │   ├── auth.service.ts
+│   │   ├── user.service.ts
+│   │   ├── imagekit.service.ts
+│   │   └── mail.service.ts
+│   ├── types/               # TypeScript types
+│   └── validations/         # Zod validation schemas
+│       └── auth.validation.ts
 ├── main.ts                 # Application entry point
 ├── package.json
 ├── tsconfig.json
@@ -134,7 +170,7 @@ backend/
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 Create a `.env` file in the root directory:
 
@@ -144,8 +180,8 @@ PORT=8000
 HOST=0.0.0.0
 NODE_ENV=development
 
-# Database
-DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/database"
+# Database (MongoDB with Replica Set)
+DATABASE_URL=mongodb://127.0.0.1:27017/livebhoomi?replicaSet=rs0&directConnection=true
 
 # Logging
 LOG_LEVEL=info
@@ -160,319 +196,455 @@ JWT_EXPIRES_IN=1d
 
 # SSL/HTTPS (optional)
 USE_HTTPS=false
+
+# Email Service (Resend)
+RESEND_API_KEY=re_your_api_key_here
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+MAIL_FROM_NAME=Live Bhoomi
+
+# ImageKit
+IMAGEKIT_PRIVATE_KEY=private_your_key
+IMAGEKIT_PUBLIC_KEY=public_your_key
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id/
 ```
 
 ---
 
-## SSL/HTTPS Configuration
+## 🗄️ Database Setup
 
-### Generate Self-Signed Certificates
+### MongoDB Replica Set (Required)
+
+Prisma requires MongoDB to run as a replica set for transactions. Here's how to set it up:
+
+#### Option 1: Local MongoDB
 
 ```bash
-npm run generate:cert
+# Terminal 1: Start MongoDB with replica set
+mkdir -p ~/data/mongodb
+mongod --replSet rs0 --dbpath ~/data/mongodb --port 27017
+
+# Terminal 2: Initialize replica set (first time only)
+mongosh
+rs.initiate()
+
+# Verify
+rs.status()
 ```
 
-This creates:
-- `certificates/server.key` - Private key
-- `certificates/server.crt` - Certificate
+#### Option 2: MongoDB Atlas
 
-### Enable HTTPS
+MongoDB Atlas automatically provides replica sets. Just use your connection string:
 
-1. Set in `.env`:
-   ```env
-   USE_HTTPS=true
-   ```
+```env
+DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+```
 
-2. Start the server:
-   ```bash
-   npm run dev
-   # or
-   npm run dev:https
-   ```
+### Push Schema
 
-### Certificate Details
+```bash
+# Generate Prisma client
+npx prisma generate
 
-- **Valid for:** 365 days
-- **Common Name:** localhost
-- **Subject Alternative Names:** localhost, *.localhost, 127.0.0.1, 0.0.0.0
+# Push schema to database
+npx prisma db push
 
-> ⚠️ **Note:** Self-signed certificates will show a browser warning. This is normal for development. For production, use certificates from a trusted CA (Let's Encrypt, etc.).
+# Open Prisma Studio (optional)
+npx prisma studio
+```
 
 ---
 
-## API Documentation
+## 📚 API Documentation
 
-### Swagger UI
+### REST API Documentation
 
-Access interactive API documentation at:
+- **Swagger UI**: http://localhost:8000/documentation
+- **Scalar API Reference**: http://localhost:8000/reference
+- **OpenAPI JSON**: http://localhost:8000/documentation/json
 
-- **HTTP:** http://localhost:8000/documentation
-- **HTTPS:** https://localhost:8000/documentation
+### GraphQL API
 
-### Available Endpoints
+- **GraphQL Endpoint**: http://localhost:8000/graphql
+- **GraphiQL IDE**: http://localhost:8000/graphiql
+
+---
+
+## 🔌 REST API Endpoints
+
+### Authentication
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/documentation` | GET | Swagger UI |
-| `/documentation/json` | GET | OpenAPI JSON schema |
-| `/documentation/yaml` | GET | OpenAPI YAML schema |
+| `/api/v1/auth/register` | POST | Register new user (sends OTP) |
+| `/api/v1/auth/verify-otp` | POST | Verify OTP and complete registration |
+| `/api/v1/auth/resend-otp` | POST | Resend OTP to email |
+| `/api/v1/auth/login` | POST | Login with email/phone & password |
+
+### Users
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/users/me` | GET | Get current user |
+| `/api/v1/users` | GET | List users (with filters) |
+| `/api/v1/users/:id` | GET | Get user by ID |
+| `/api/v1/users/:id` | PATCH | Update user |
+| `/api/v1/users/:id` | DELETE | Delete user |
+| `/api/v1/users/:id/password` | PATCH | Update password |
+| `/api/v1/users/:id/block` | PATCH | Block user (admin) |
+| `/api/v1/users/:id/unblock` | PATCH | Unblock user (admin) |
+| `/api/v1/users/:id/verify` | PATCH | Verify user email (admin) |
+| `/api/v1/users/:id/role` | PATCH | Update user role (admin) |
+| `/api/v1/users/stats` | GET | Get user statistics |
+
+### Profile
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/users/:id/profile` | GET | Get user profile |
+| `/api/v1/users/:id/profile` | PUT | Create/update profile |
+
+### KYC
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/users/:id/kyc/aadhar` | POST | Submit Aadhar card details |
+| `/api/v1/users/:id/kyc/pan` | POST | Submit PAN card details |
+| `/api/v1/users/:id/kyc` | GET | Get KYC status |
+| `/api/v1/users/:id/kyc/verify` | PATCH | Verify KYC (admin) |
+
+### Image Upload (ImageKit)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/images/upload` | POST | Upload single image |
+| `/api/v1/images/upload/multiple` | POST | Upload multiple images |
+| `/api/v1/images/upload/url` | POST | Upload from URL |
+| `/api/v1/images/delete` | DELETE | Delete image |
+| `/api/v1/images/list` | GET | List images |
+| `/api/v1/images/auth` | GET | Get auth params for client upload |
+
+### Health
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/v1/health` | GET | Quick health check |
 | `/api/v1/health?detailed=true` | GET | Health check with DB status |
 | `/api/v1/health/detailed` | GET | Detailed system health |
 
 ---
 
-## HTTP Client Testing
+## 🔷 GraphQL API
 
-The `http/` folder contains REST Client compatible files for testing APIs.
+### Queries
 
-### Files
+#### User Queries
+```graphql
+query {
+  me {
+    id
+    name
+    email
+    role
+    kyc {
+      kycStatus
+      isAadharVerified
+      isPanVerified
+    }
+  }
+  
+  users(input: { page: 1, limit: 10 }) {
+    data {
+      id
+      name
+      email
+    }
+    pagination {
+      total
+      totalPages
+    }
+  }
+  
+  userStats {
+    total
+    verified
+    byRole {
+      BUYER
+      SELLER
+      AGENT
+    }
+  }
+}
+```
 
-| File | Purpose |
-|------|---------|
-| `globals.http` | Shared variables (baseUrl, auth tokens) |
-| `health.http` | Health check endpoint tests |
-| `api.http` | CRUD operation templates |
-| `http-client.env.json` | Environment configurations |
+#### Listing Queries
+```graphql
+query {
+  listings(input: {
+    city: "Mumbai"
+    listingType: SALE
+    propertyType: APARTMENT
+    limit: 10
+  }) {
+    data {
+      id
+      title
+      price
+      propertyType
+      owner { name }
+      images { url }
+    }
+    pagination { total }
+  }
+  
+  listing(id: "listing-id") {
+    id
+    title
+    description
+    price
+    amenities {
+      amenity { name }
+    }
+  }
+  
+  featuredListings(limit: 5) {
+    id
+    title
+    price
+  }
+}
+```
 
-### Usage with VS Code/Cursor
+#### Project Queries
+```graphql
+query {
+  projects(input: { city: "Mumbai", limit: 10 }) {
+    data {
+      id
+      name
+      city
+      builder { name }
+    }
+  }
+}
+```
 
-1. Install the **REST Client** extension
-2. Open any `.http` file
-3. Click "Send Request" above each request
+### Mutations
 
-### Usage with CLI (httpyac)
+#### Authentication
+```graphql
+mutation {
+  register(input: {
+    name: "John Doe"
+    email: "john@example.com"
+    phone: "9876543210"
+    password: "Password123!"
+  }) {
+    message
+    email
+  }
+  
+  verifyOtp(input: {
+    email: "john@example.com"
+    otp: "123456"
+  }) {
+    user { id name }
+    token
+  }
+  
+  login(input: {
+    identifier: "john@example.com"
+    password: "Password123!"
+  }) {
+    user { id name }
+    token
+  }
+}
+```
+
+#### Create Listing
+```graphql
+mutation {
+  createListing(input: {
+    title: "3BHK Apartment in Mumbai"
+    description: "Beautiful apartment..."
+    price: 15000000
+    listingType: SALE
+    propertyType: APARTMENT
+    city: "Mumbai"
+    locality: "Andheri"
+    state: "Maharashtra"
+    latitude: 19.1136
+    longitude: 72.8697
+    amenityIds: ["amenity-id-1", "amenity-id-2"]
+    images: [
+      { url: "https://...", isPrimary: true }
+    ]
+  }) {
+    id
+    slug
+    status
+  }
+}
+```
+
+#### KYC Submission
+```graphql
+mutation {
+  submitAadharKyc(userId: "user-id", input: {
+    aadharNumber: "123456789012"
+    aadharName: "John Doe"
+    aadharDob: "01-01-1990"
+    aadharDocUrl: "https://..."
+  }) {
+    kycStatus
+    isAadharVerified
+  }
+  
+  submitPanKyc(userId: "user-id", input: {
+    panNumber: "ABCDE1234F"
+    panName: "John Doe"
+    panDocUrl: "https://..."
+  }) {
+    kycStatus
+    isPanVerified
+  }
+}
+```
+
+### Using GraphQL with Authentication
+
+1. **Login to get token:**
+```graphql
+mutation {
+  login(input: {
+    identifier: "your@email.com"
+    password: "YourPassword123!"
+  }) {
+    token
+  }
+}
+```
+
+2. **Add Authorization header:**
+   - Header: `Authorization: Bearer <your-token>`
+
+3. **Run authenticated mutations:**
+```graphql
+mutation {
+  createListing(input: { ... }) {
+    id
+  }
+}
+```
+
+---
+
+## 🔐 Authentication
+
+### Registration Flow
+
+1. **Register** - User provides name, email, phone, password
+2. **OTP Sent** - System generates 6-digit OTP and sends to email
+3. **Verify OTP** - User verifies OTP to complete registration
+4. **JWT Token** - System returns JWT token for authenticated requests
+
+### Login Flow
+
+1. **Login** - User provides email/phone and password
+2. **Validation** - System validates credentials
+3. **JWT Token** - System returns JWT token
+
+### Using JWT Token
+
+Add to request headers:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+---
+
+## 🆔 KYC Verification
+
+### Supported Documents
+
+- **Aadhar Card** - 12-digit Aadhar number
+- **PAN Card** - 10-character PAN number
+
+### KYC Status Flow
+
+1. **PENDING** - User hasn't submitted any documents
+2. **SUBMITTED** - User submitted documents, awaiting verification
+3. **UNDER_REVIEW** - Admin is reviewing documents
+4. **VERIFIED** - Documents verified and approved
+5. **REJECTED** - Documents rejected (with remarks)
+
+### Submit KYC (REST)
 
 ```bash
-# Run all health check requests
-npm run http:health
+POST /api/v1/users/:id/kyc/aadhar
+Content-Type: application/json
 
-# Run all HTTP files
-npm run http
-
-# Run specific file
-npx httpyac http/health.http --all
+{
+  "aadharNumber": "123456789012",
+  "aadharName": "John Doe",
+  "aadharDob": "01-01-1990",
+  "aadharDocUrl": "https://..."
+}
 ```
 
-### Environment Selection
+### Submit KYC (GraphQL)
 
-The `http-client.env.json` supports multiple environments:
-
-```json
-{
-  "development": {
-    "baseUrl": "http://localhost:8000"
-  },
-  "staging": {
-    "baseUrl": "https://staging.example.com"
-  },
-  "production": {
-    "baseUrl": "https://api.example.com"
+```graphql
+mutation {
+  submitAadharKyc(userId: "user-id", input: {
+    aadharNumber: "123456789012"
+    aadharName: "John Doe"
+    aadharDob: "01-01-1990"
+  }) {
+    kycStatus
   }
 }
 ```
 
 ---
 
-## HTTP Status Codes
+## 📸 Image Upload
 
-A comprehensive utility for HTTP status codes is available at `src/utils/httpStatusCodes.util.ts`.
+### Using ImageKit
 
-### Usage
+#### Upload Single Image (REST)
 
-```typescript
-import { 
-  HttpStatusCode, 
-  HTTP_OK, 
-  HTTP_NOT_FOUND,
-  getStatusMessage,
-  isSuccess,
-  isClientError 
-} from '@/utils/httpStatusCodes.util';
+```bash
+POST /api/v1/images/upload
+Content-Type: multipart/form-data
 
-// Using constants
-reply.code(HTTP_OK).send(data);
-reply.code(HTTP_NOT_FOUND).send({ error: 'Not found' });
-
-// Using object notation
-reply.code(HttpStatusCode.CREATED).send(data);
-reply.code(HttpStatusCode.UNAUTHORIZED).send({ error: 'Unauthorized' });
-
-// Helper functions
-getStatusMessage(404);     // "Not Found"
-isSuccess(200);            // true
-isClientError(404);        // true
-isServerError(500);        // true
+file: <image-file>
+folder: /listings (optional)
 ```
 
-### Available Status Codes
+#### Upload Multiple Images (REST)
 
-| Category | Codes |
-|----------|-------|
-| **1xx Informational** | 100-103 |
-| **2xx Success** | 200-226 |
-| **3xx Redirection** | 300-308 |
-| **4xx Client Error** | 400-451 |
-| **5xx Server Error** | 500-511 |
+```bash
+POST /api/v1/images/upload/multiple
+Content-Type: multipart/form-data
+
+files: <image-file-1>
+files: <image-file-2>
+folder: /listings (optional)
+```
+
+#### Get Auth Params for Client Upload
+
+```bash
+GET /api/v1/images/auth
+```
+
+Returns authentication parameters for direct client-side uploads to ImageKit.
 
 ---
 
-## Response Helpers
-
-Use `FastifyResponseHelper` for consistent API responses.
-
-### Import
-
-```typescript
-import { FastifyResponseHelper } from '@/helpers/httpStatus';
-```
-
-### Available Methods
-
-#### Success Responses (2xx)
-
-```typescript
-// 200 OK
-FastifyResponseHelper.ok(reply, data, 'Success message', request);
-
-// 201 Created
-FastifyResponseHelper.created(reply, data, 'Created successfully', request);
-
-// 202 Accepted
-FastifyResponseHelper.accepted(reply, data, 'Accepted', request);
-
-// 204 No Content
-FastifyResponseHelper.noContent(reply);
-```
-
-#### Client Error Responses (4xx)
-
-```typescript
-// 400 Bad Request
-FastifyResponseHelper.badRequest(reply, 'Invalid input', request);
-
-// 401 Unauthorized
-FastifyResponseHelper.unauthorized(reply, 'Please login', request);
-
-// 403 Forbidden
-FastifyResponseHelper.forbidden(reply, 'Access denied', request);
-
-// 404 Not Found
-FastifyResponseHelper.notFound(reply, 'Resource not found', request);
-
-// 409 Conflict
-FastifyResponseHelper.conflict(reply, 'Already exists', request);
-
-// 422 Unprocessable Entity
-FastifyResponseHelper.unprocessableEntity(reply, 'Validation failed', request);
-
-// 429 Too Many Requests
-FastifyResponseHelper.tooManyRequests(reply, 'Rate limit exceeded', request);
-```
-
-#### Server Error Responses (5xx)
-
-```typescript
-// 500 Internal Server Error
-FastifyResponseHelper.internalServerError(reply, 'Something went wrong', request);
-
-// 503 Service Unavailable
-FastifyResponseHelper.serviceUnavailable(reply, 'Service down', request);
-```
-
-#### Generic Response
-
-```typescript
-// Any status code
-FastifyResponseHelper.send(reply, 418, data, "I'm a teapot", request);
-```
-
-### Response Format
-
-All responses follow this structure:
-
-```json
-{
-  "success": true,
-  "message": "Success",
-  "statusCode": 200,
-  "requestId": "req-1",
-  "data": { ... }
-}
-```
-
----
-
-## Health Check Endpoints
-
-### Quick Health Check
-
-**Endpoint:** `GET /api/v1/health`
-
-**Response Time:** ~1-5ms
-
-```json
-{
-  "success": true,
-  "message": "Health check successful",
-  "statusCode": 200,
-  "data": {
-    "status": "ok",
-    "uptime": 123.45,
-    "timestamp": "2026-02-18"
-  }
-}
-```
-
-### Health Check with Database Status
-
-**Endpoint:** `GET /api/v1/health?detailed=true`
-
-**Response Time:** ~50-200ms (cached for 10 seconds)
-
-```json
-{
-  "success": true,
-  "message": "Health check successful",
-  "statusCode": 200,
-  "data": {
-    "status": "ok",
-    "uptime": 123.45,
-    "services": {
-      "database": "connected"
-    },
-    "timestamp": "2026-02-18"
-  }
-}
-```
-
-### Detailed System Health
-
-**Endpoint:** `GET /api/v1/health/detailed`
-
-```json
-{
-  "success": true,
-  "message": "Detailed health check",
-  "statusCode": 200,
-  "data": {
-    "status": "ok",
-    "uptime": 123.45,
-    "services": {
-      "database": "connected"
-    },
-    "memory": {
-      "used": "45 MB",
-      "total": "128 MB"
-    },
-    "timestamp": "2026-02-18"
-  }
-}
-```
-
----
-
-## Scripts
+## 📜 Scripts
 
 | Script | Description |
 |--------|-------------|
@@ -480,7 +652,7 @@ All responses follow this structure:
 | `npm run dev:https` | Start development server (HTTPS) |
 | `npm run build` | Build for production |
 | `npm run start` | Start production server |
-| `npm run start:prod` | Start production server with NODE_ENV=production |
+| `npm run start:prod` | Start with NODE_ENV=production |
 | `npm run build:check` | Type check without building |
 | `npm run clean` | Remove dist folder |
 | `npm run generate:cert` | Generate SSL certificates |
@@ -491,12 +663,11 @@ All responses follow this structure:
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage |
 | `npm run http` | Run all HTTP client tests |
-| `npm run http:health` | Run health check HTTP tests |
-| `npm run http:api` | Run API HTTP tests |
+| `npm run lint` | Type check with TypeScript |
 
 ---
 
-## Deployment
+## 🚀 Deployment
 
 ### Build for Production
 
@@ -514,54 +685,7 @@ npm run build
 npm run start:prod
 ```
 
-### Docker Deployment
-
-```bash
-# Build Docker image
-docker build -t livebhoomi-api .
-
-# Run container
-docker run -d \
-  --name livebhoomi-api \
-  -p 8000:8000 \
-  -e DATABASE_URL="your-mongodb-url" \
-  -e JWT_SECRET="your-jwt-secret" \
-  -e COOKIE_SECRET="your-cookie-secret" \
-  livebhoomi-api
-```
-
-### Docker Compose
-
-```bash
-# Create .env file with your configuration
-cp .env.example .env
-
-# Start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Deployment Platforms
-
-The application can be deployed to:
-
-| Platform | Method |
-|----------|--------|
-| **Railway** | Connect GitHub repo, set env vars |
-| **Render** | Docker or Node.js runtime |
-| **Fly.io** | `fly launch` with Dockerfile |
-| **DigitalOcean App Platform** | Connect GitHub repo |
-| **AWS ECS/Fargate** | Use Dockerfile |
-| **Google Cloud Run** | Use Dockerfile |
-| **Azure Container Apps** | Use Dockerfile |
-| **Heroku** | Add Procfile: `web: npm run start:prod` |
-
-### Production Environment Variables
+### Environment Variables for Production
 
 ```env
 NODE_ENV=production
@@ -573,7 +697,11 @@ FRONTEND_URL=https://your-frontend.com
 COOKIE_SECRET=<generate-secure-random-string>
 JWT_SECRET=<generate-secure-random-string>
 JWT_EXPIRES_IN=1d
-USE_HTTPS=false  # Set true if handling HTTPS at app level
+USE_HTTPS=false
+RESEND_API_KEY=re_...
+IMAGEKIT_PRIVATE_KEY=private_...
+IMAGEKIT_PUBLIC_KEY=public_...
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/...
 ```
 
 ### Production Checklist
@@ -581,30 +709,85 @@ USE_HTTPS=false  # Set true if handling HTTPS at app level
 - [ ] Set `NODE_ENV=production`
 - [ ] Use strong secrets for `JWT_SECRET` and `COOKIE_SECRET`
 - [ ] Configure proper `FRONTEND_URL` for CORS
-- [ ] Set up database connection with proper credentials
+- [ ] Set up MongoDB connection with replica set
 - [ ] Configure SSL/TLS (via reverse proxy or `USE_HTTPS=true`)
 - [ ] Set up logging and monitoring
-- [ ] Configure rate limiting for your needs
+- [ ] Configure rate limiting
 - [ ] Set up health check monitoring
+- [ ] Configure email service (Resend API key)
+- [ ] Configure ImageKit credentials
 
 ---
 
-## Security Features
+## 🛡️ Security Features
 
 - **Helmet** - Security headers
 - **CORS** - Cross-Origin Resource Sharing
 - **Rate Limiting** - 100 requests per minute
 - **JWT Authentication** - With cookie support
 - **HTTPS/SSL** - Self-signed certificates for development
+- **Input Validation** - Zod schema validation
+- **Password Hashing** - bcrypt with salt rounds
+- **OTP Security** - Time-limited, single-use OTPs
+- **KYC Data Masking** - Aadhar numbers masked in storage
 
 ---
 
-## License
+## 📊 Database Models
+
+### Core Models
+
+- **User** - User accounts with authentication
+- **Profile** - User profile information
+- **Otp** - OTP records for email verification
+- **Subscription** - User subscription plans
+- **KycDetails** - KYC verification data (embedded in User)
+
+### Property Models
+
+- **Project** - Real estate projects
+- **Listing** - Property listings
+- **ListingImage** - Listing images
+- **Amenity** - Property amenities
+- **AmenityOnListing** - Listing-amenity relationships
+
+### Business Models
+
+- **Lead** - Property inquiry leads
+- **Review** - User reviews and ratings
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📝 License
 
 ISC
 
 ---
 
-## Support
+## 📞 Support
 
 For support, email support@livebhoomi.com or create an issue in the repository.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Fastify](https://www.fastify.io/) - Fast and low overhead web framework
+- [Prisma](https://www.prisma.io/) - Next-generation ORM
+- [Mercurius](https://mercurius.dev/) - GraphQL adapter for Fastify
+- [ImageKit](https://imagekit.io/) - Image optimization and CDN
+- [Resend](https://resend.com/) - Email API
+
+---
+
+**Made with ❤️ for Live Bhoomi**
