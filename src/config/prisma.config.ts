@@ -1,24 +1,21 @@
 import { env } from "@/config/env.config";
 import { createRequire } from "module";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { join } from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
 
-// Dynamically import the correct Prisma client based on database type
+// Resolve generated Prisma client from project root (cwd). Using process.cwd() so it works
+// when the app is bundled (e.g. tsup) and run from dist/, and in monorepos.
+const generatedDir = join(process.cwd(), "generated", "prisma");
+
 let PrismaClient: any;
 
 if (env.DATABASE_TYPE === "mysql") {
-  const mysqlPath = join(__dirname, "../../generated/prisma/client-mysql");
-  PrismaClient = require(mysqlPath).PrismaClient;
+  PrismaClient = require(join(generatedDir, "client-mysql")).PrismaClient;
 } else if (env.DATABASE_TYPE === "postgresql") {
-  const pgPath = join(__dirname, "../../generated/prisma/client-postgres");
-  PrismaClient = require(pgPath).PrismaClient;
+  PrismaClient = require(join(generatedDir, "client-postgres")).PrismaClient;
 } else {
-  const mongodbPath = join(__dirname, "../../generated/prisma/client-mongodb");
-  PrismaClient = require(mongodbPath).PrismaClient;
+  PrismaClient = require(join(generatedDir, "client-mongodb")).PrismaClient;
 }
 
 const globalForPrisma = globalThis as unknown as {
