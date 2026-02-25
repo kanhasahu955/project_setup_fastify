@@ -1,30 +1,45 @@
 # Deploy on Render
 
-## Required: Set in Render dashboard
+## Environment variables
 
-In your service **Environment** tab, set these (they are not in `render.yaml` so you control them):
+Names match your **.env**. Set values in Render **Environment** tab (never commit .env). Blueprint sets some; the rest you set in the dashboard.
 
-| Variable        | Description |
-|----------------|-------------|
-| `DATABASE_URL` | Connection string for your database (MongoDB, MySQL, or PostgreSQL). |
-| `FRONTEND_URL` | Comma-separated frontend origins allowed for CORS (e.g. `https://yourapp.vercel.app`). |
+| Variable | In blueprint? | Set in dashboard |
+|----------|----------------|------------------|
+| `NODE_ENV` | ✅ production | — |
+| `HOST` | ✅ 0.0.0.0 | — |
+| `PORT` | — | **Do not set** (Render sets it) |
+| `LOG_LEVEL` | ✅ info | — |
+| `DATABASE_TYPE` | ✅ postgresql | Override if using mysql/mongodb |
+| `DATABASE_URL` | sync: false | **Yes** – DB connection string |
+| `DATABASE_URL_POSTGRES` | sync: false | **Yes** – for Prisma when DATABASE_TYPE=postgresql |
+| `JWT_SECRET` | generate | Or set your own |
+| `COOKIE_SECRET` | generate | Or set your own |
+| `JWT_EXPIRES_IN` | ✅ 1d | — |
+| `FRONTEND_URL` | sync: false | **Yes** – CORS origins, comma-separated |
+| `USE_HTTPS` | ✅ false | — |
+| `SMTP_USER` | sync: false | If using mail |
+| `SMTP_PASS` | sync: false | If using mail |
+| `MAIL_FROM_NAME` | ✅ Live Bhoomi | — |
+| `IMAGEKIT_PUBLIC_KEY` | sync: false | If using ImageKit |
+| `IMAGEKIT_PRIVATE_KEY` | sync: false | If using ImageKit |
+| `IMAGEKIT_URL_ENDPOINT` | sync: false | If using ImageKit (app uses this key name) |
 
-Optional overrides: `DATABASE_TYPE` (default `mongodb`), `API_URL` (defaults to Render’s URL), `JWT_EXPIRES_IN`, `LOG_LEVEL`.
+`API_URL` is optional; app falls back to `RENDER_EXTERNAL_URL` if unset.
 
 ## Monorepo (backend in a subfolder)
 
-**"Cannot find module ... dist/main.js"** usually means the start command ran from the repo root instead of the backend folder.
+**"Cannot find module ... dist/main.js"** means the start command ran from repo root instead of the backend folder.
 
-1. **render.yaml** already has `rootDir: fastify_backend` so build and start run from that folder. Commit and push so Render picks it up.
-2. **If it still fails**, set **Root Directory** in the Render dashboard: **Settings** → **Root Directory** → `fastify_backend` (no leading slash). Save and redeploy.
-
-Build and start then both run from `fastify_backend/`, so `dist/main.js` is found.
+1. **start.sh** at the repo root (same level as `fastify_backend/`) runs the app from the backend folder. **render.yaml** uses `startCommand: sh start.sh`. Commit and push so Render has `start.sh` and the updated start command.
+2. **If the deploy still runs `node dist/main.js`** (dashboard override), set **Start Command** in Render to **`sh start.sh`**: **Settings** → **Build & Deploy** → **Start Command** → `sh start.sh` → Save and redeploy.
+3. Alternatively set **Root Directory** to `fastify_backend` so build and start both run from that folder.
 
 ## Common deploy failures
 
 | Failure | Fix |
 |--------|-----|
-| **Deploy: "Cannot find module ... dist/main.js"** | Set **Root Directory** in Render to `fastify_backend` so the start command runs from that folder. Ensure `rootDir: fastify_backend` is set in render.yaml. |
+| **Deploy: "Cannot find module ... dist/main.js"** | Use **Start Command** `sh start.sh` (repo root has this script). Or set **Root Directory** to `fastify_backend` in Render. |
 | **Build: "Cannot find module" / no package.json** | Set **Root Directory** to the backend folder (e.g. `fastify_backend`) if you use a monorepo. |
 | **Build: Prisma / tsup fails** | Ensure **Build Command** is `npm ci && npm run build`. Node 18+ (Render default is fine). |
 | **Runtime: "Missing required environment variable"** | Set **DATABASE_URL**, **FRONTEND_URL**, and ensure **JWT_SECRET** and **COOKIE_SECRET** exist (Render can generate them). |
@@ -34,6 +49,6 @@ Build and start then both run from `fastify_backend/`, so `dist/main.js` is foun
 ## Build and start
 
 - **Build:** `npm ci && npm run build` (install deps, run Prisma generate + tsup).
-- **Start:** `node dist/main.js` (or `npm start`).
+- **Start:** `sh start.sh` (monorepo) or `node dist/main.js` (if Root Directory = `fastify_backend`).
 
 After a successful deploy, the API is available at the URL Render shows (e.g. `https://livebhoomi-api.onrender.com`).

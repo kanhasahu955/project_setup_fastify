@@ -1,5 +1,6 @@
 # Render Blueprint Configuration
 # https://render.com/docs/blueprint-spec
+# Env var names match your .env. Set secret values in Render dashboard (never commit .env).
 
 services:
   - type: web
@@ -7,19 +8,22 @@ services:
     runtime: node
     region: oregon
     plan: free
-    # If backend is in a subfolder (e.g. live_bhoomi/fastify_backend), keep this.
     rootDir: fastify_backend
     buildCommand: npm ci && npm run build
-    # Render runs start from repo root, so enter backend folder first
-    startCommand: cd fastify_backend && node dist/main.js
+    startCommand: sh start.sh
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
-      # PORT is set automatically by Render for web services
+      - key: HOST
+        value: "0.0.0.0"
+      - key: LOG_LEVEL
+        value: info
       - key: DATABASE_TYPE
-        value: mongodb
+        value: postgresql
       - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_POSTGRES
         sync: false
       - key: JWT_SECRET
         generateValue: true
@@ -27,10 +31,19 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 1d
-      - key: LOG_LEVEL
-        value: info
       - key: FRONTEND_URL
         sync: false
       - key: USE_HTTPS
         value: "false"
-      # API_URL defaults to RENDER_EXTERNAL_URL (set by Render); override in dashboard if needed
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: "Live Bhoomi"
+      - key: IMAGEKIT_PUBLIC_KEY
+        sync: false
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: IMAGEKIT_URL_ENDPOINT
+        sync: false
