@@ -11,11 +11,14 @@ const require = createRequire(import.meta.url);
 let PrismaClient: any;
 
 if (env.DATABASE_TYPE === "mysql") {
-	const mysqlPath = join(__dirname, "../../generated/prisma/client-mysql");
-	PrismaClient = require(mysqlPath).PrismaClient;
+  const mysqlPath = join(__dirname, "../../generated/prisma/client-mysql");
+  PrismaClient = require(mysqlPath).PrismaClient;
+} else if (env.DATABASE_TYPE === "postgresql") {
+  const pgPath = join(__dirname, "../../generated/prisma/client-postgres");
+  PrismaClient = require(pgPath).PrismaClient;
 } else {
-	const mongodbPath = join(__dirname, "../../generated/prisma/client-mongodb");
-	PrismaClient = require(mongodbPath).PrismaClient;
+  const mongodbPath = join(__dirname, "../../generated/prisma/client-mongodb");
+  PrismaClient = require(mongodbPath).PrismaClient;
 }
 
 const globalForPrisma = globalThis as unknown as {

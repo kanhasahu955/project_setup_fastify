@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 export type NodeEnv = "development" | "production" | "test";
 
-export type DatabaseType = "mongodb" | "mysql";
+export type DatabaseType = "mongodb" | "mysql" | "postgresql";
 
 interface EnvConfig {
 	PORT: number;

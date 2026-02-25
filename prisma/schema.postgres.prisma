@@ -1,0 +1,406 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma/client-postgres"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_POSTGRES")
+}
+
+/////////////////////////
+// ENUMS
+/////////////////////////
+
+enum UserRole {
+  BUYER
+  OWNER
+  AGENT
+  BUILDER
+  ADMIN
+}
+
+enum LeadSource {
+  CHAT
+  CALL
+  AI_ASSISTANT
+  DIRECT_ENQUIRY
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SITE_VISIT
+  CLOSED
+  LOST
+}
+
+enum PlanType {
+  FREE
+  AGENT_BASIC
+  AGENT_PRO
+  BUILDER_PRO
+}
+
+enum ListingType {
+  SALE
+  RENT
+  LEASE
+}
+
+enum PropertyCondition {
+  NEW
+  RESALE
+  UNDER_CONSTRUCTION
+  READY_TO_MOVE
+}
+
+enum PropertyType {
+  APARTMENT
+  INDEPENDENT_HOUSE
+  VILLA
+  STUDIO_APARTMENT
+  PENTHOUSE
+  BUILDER_FLOOR
+  OFFICE_SPACE
+  SHOP
+  SHOWROOM
+  WAREHOUSE
+  INDUSTRIAL_BUILDING
+  CO_WORKING
+  RESIDENTIAL_PLOT
+  COMMERCIAL_PLOT
+  AGRICULTURAL_LAND
+  PG
+  HOSTEL
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  UNDER_REVIEW
+  SOLD
+  RENTED
+  EXPIRED
+  REJECTED
+  BLOCKED
+  ARCHIVED
+}
+
+enum FurnishingType {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+}
+
+enum AmenityCategory {
+  BASIC
+  SECURITY
+  LIFESTYLE
+  SPORTS
+  POWER_BACKUP
+  WATER_SUPPLY
+}
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+/////////////////////////
+// MODELS
+/////////////////////////
+
+model User {
+  id       String   @id @default(uuid())
+  name     String   @db.VarChar(100)
+  email    String   @unique @db.VarChar(255)
+  phone    String   @unique @db.VarChar(20)
+  password String?  @db.VarChar(255)
+  role     UserRole @default(BUYER)
+
+  // Verification status
+  isEmailVerified Boolean   @default(false)
+  isPhoneVerified Boolean   @default(false)
+  isBlocked       Boolean   @default(false)
+  avatar          String?   @db.VarChar(500)
+  lastLogin       DateTime?
+
+  // KYC Details (stored as JSON)
+  kycAadharNumber     String?   @db.Text
+  kycAadharName       String?   @db.VarChar(100)
+  kycAadharDob        String?   @db.VarChar(20)
+  kycAadharDocUrl     String?   @db.Text
+  kycIsAadharVerified Boolean   @default(false)
+  kycAadharVerifiedAt DateTime?
+  kycPanNumber        String?   @db.VarChar(10)
+  kycPanName          String?   @db.VarChar(100)
+  kycPanDocUrl        String?   @db.Text
+  kycIsPanVerified    Boolean   @default(false)
+  kycPanVerifiedAt    DateTime?
+  kycStatus           KycStatus @default(PENDING)
+  kycRemarks          String?   @db.Text
+  kycVerifiedAt       DateTime?
+  kycVerifiedBy       String?   @db.VarChar(100)
+
+  profile       Profile?
+  listings      Listing[]
+  subscriptions Subscription[]
+  projects      Project[]
+
+  leadsAsBuyer Lead[] @relation("BuyerLeads")
+  leadsAsOwner Lead[] @relation("OwnerLeads")
+
+  reviewsGiven    Review[] @relation("Reviewer")
+  reviewsReceived Review[] @relation("ReviewTarget")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  email     String   @db.VarChar(255)
+  phone     String   @db.VarChar(20)
+  otp       String   @db.VarChar(6)
+  name      String   @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  role      UserRole @default(BUYER)
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([phone])
+  @@index([expiresAt])
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  name        String  @db.VarChar(255)
+  slug        String  @unique @db.VarChar(255)
+  description String  @db.Text
+  city        String  @db.VarChar(100)
+  locality    String  @db.VarChar(255)
+  latitude    Decimal @db.Decimal(10, 8)
+  longitude   Decimal @db.Decimal(11, 8)
+
+  builderId String @db.VarChar(36)
+  builder   User   @relation(fields: [builderId], references: [id], onDelete: Cascade)
+
+  totalUnits     Int?
+  possessionDate DateTime?
+  reraNumber     String?   @db.VarChar(50)
+
+  listings Listing[]
+
+  createdAt DateTime @default(now())
+
+  @@index([builderId])
+  @@index([city])
+  @@index([slug])
+}
+
+model Listing {
+  id          String @id @default(uuid())
+  title       String @db.VarChar(255)
+  slug        String @unique @db.VarChar(255)
+  description String @db.Text
+
+  price        Decimal            @db.Decimal(15, 2)
+  pricePerSqft Decimal?           @db.Decimal(10, 2)
+  listingType  ListingType
+  propertyType PropertyType
+  condition    PropertyCondition?
+  status       ListingStatus      @default(ACTIVE)
+
+  bedrooms    Int?
+  bathrooms   Int?
+  balconies   Int?
+  floor       Int?
+  totalFloors Int?
+
+  area        Decimal? @db.Decimal(10, 2)
+  carpetArea  Decimal? @db.Decimal(10, 2)
+  builtUpArea Decimal? @db.Decimal(10, 2)
+
+  furnishing FurnishingType?
+  facing     String?         @db.VarChar(50)
+
+  city      String  @db.VarChar(100)
+  locality  String  @db.VarChar(255)
+  state     String  @db.VarChar(100)
+  pincode   String? @db.VarChar(10)
+  latitude  Decimal @db.Decimal(10, 8)
+  longitude Decimal @db.Decimal(11, 8)
+
+  isVerified  Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
+  boostExpiry DateTime?
+  expiryDate  DateTime?
+  deletedAt   DateTime?
+  views       Int       @default(0)
+  clicks      Int       @default(0)
+
+  ownerId String @db.VarChar(36)
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  projectId String?  @db.VarChar(36)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  images    ListingImage[]
+  amenities AmenityOnListing[]
+  leads     Lead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([projectId])
+  @@index([status])
+  @@index([city])
+  @@index([listingType])
+  @@index([propertyType])
+  @@index([slug])
+  @@index([deletedAt])
+}
+
+model Lead {
+  id String @id @default(uuid())
+
+  listingId String @db.VarChar(36)
+  buyerId   String @db.VarChar(36)
+  ownerId   String @db.VarChar(36)
+
+  message String?    @db.Text
+  source  LeadSource
+  status  LeadStatus @default(NEW)
+
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer   User    @relation("BuyerLeads", fields: [buyerId], references: [id], onDelete: Cascade)
+  owner   User    @relation("OwnerLeads", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Subscription {
+  id     String   @id @default(uuid())
+  userId String   @db.VarChar(36)
+  plan   PlanType
+  expiry DateTime
+  active Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([active])
+}
+
+model ListingImage {
+  id        String  @id @default(uuid())
+  listingId String  @db.VarChar(36)
+  url       String  @db.Text
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+model Amenity {
+  id       String          @id @default(uuid())
+  name     String          @unique @db.VarChar(100)
+  icon     String?         @db.VarChar(255)
+  category AmenityCategory
+
+  listings AmenityOnListing[]
+
+  @@index([category])
+}
+
+model AmenityOnListing {
+  id        String @id @default(uuid())
+  listingId String @db.VarChar(36)
+  amenityId String @db.VarChar(36)
+
+  isHighlighted Boolean  @default(false)
+  verified      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, amenityId])
+  @@index([listingId])
+  @@index([amenityId])
+}
+
+model Profile {
+  id     String @id @default(uuid())
+  userId String @unique @db.VarChar(36)
+
+  bio             String? @db.Text
+  companyName     String? @db.VarChar(100)
+  designation     String? @db.VarChar(100)
+  experienceYears Int?
+
+  reraNumber String? @db.VarChar(50)
+  gstNumber  String? @db.VarChar(50)
+
+  address String? @db.VarChar(255)
+  city    String? @db.VarChar(100)
+  state   String? @db.VarChar(100)
+  pincode String? @db.VarChar(10)
+
+  website     String? @db.VarChar(255)
+  facebookUrl String? @db.VarChar(255)
+  linkedinUrl String? @db.VarChar(255)
+
+  isReraVerified    Boolean @default(false)
+  isCompanyVerified Boolean @default(false)
+
+  rating       Decimal @default(0) @db.Decimal(3, 2)
+  totalReviews Int     @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Review {
+  id      String  @id @default(uuid())
+  rating  Int
+  comment String? @db.Text
+
+  reviewerId String @db.VarChar(36)
+  userId     String @db.VarChar(36)
+
+  reviewer User @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  user     User @relation("ReviewTarget", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([reviewerId])
+  @@index([userId])
+  @@index([rating])
+}
