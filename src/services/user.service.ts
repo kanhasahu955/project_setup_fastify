@@ -14,7 +14,7 @@ import type {
 } from "@/types/user.types";
 import type { PaginatedResult } from "@/types/common.types";
 
-class UserService {
+class UserService {    
     private readonly sensitiveFields = ["password"] as const;
 
     private sanitizeUser(user: User | null): SafeUser | null {

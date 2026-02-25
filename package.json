@@ -32,14 +32,17 @@
     "prisma:studio:mongodb": "prisma studio --schema=prisma/schema.mongodb.prisma",
     "prisma:studio:mysql": "prisma studio --schema=prisma/schema.mysql.prisma",
     "prisma:studio:postgresql": "prisma studio --schema=prisma/schema.postgres.prisma",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "http": "httpyac http/*.http --all",
     "http:health": "httpyac http/health.http --all",
     "http:api": "httpyac http/api.http",
     "lint": "tsc --noEmit",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version"
   },
   "keywords": [
     "fastify",

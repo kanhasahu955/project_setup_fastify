@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.github
+*.md
+.env
+.env.*
+!.env.example
+coverage
+*.log
+.vscode
+.idea
+__tests__
+*.test.ts
+*.spec.ts
+http
+scripts
