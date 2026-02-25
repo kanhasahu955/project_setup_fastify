@@ -7,10 +7,11 @@ services:
     runtime: node
     region: oregon
     plan: free
-    # If backend is in a subfolder (e.g. live_bhoomi/fastify_backend), keep this. If repo root IS the backend, comment out the next line.
+    # If backend is in a subfolder (e.g. live_bhoomi/fastify_backend), keep this.
     rootDir: fastify_backend
     buildCommand: npm ci && npm run build
-    startCommand: node dist/main.js
+    # Render runs start from repo root, so enter backend folder first
+    startCommand: cd fastify_backend && node dist/main.js
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
