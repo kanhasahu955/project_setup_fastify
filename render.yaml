@@ -7,14 +7,19 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    # If backend is in a subfolder (e.g. live_bhoomi/fastify_backend), keep this. If repo root IS the backend, comment out the next line.
+    rootDir: fastify_backend
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main.js
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
+      # PORT is set automatically by Render for web services
+      - key: DATABASE_TYPE
+        value: mongodb
       - key: DATABASE_URL
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: COOKIE_SECRET
@@ -24,8 +29,7 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: FRONTEND_URL
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: USE_HTTPS
         value: "false"
-      - key: API_URL
-        value: https://sk-bakery-3blw.onrender.com
+      # API_URL defaults to RENDER_EXTERNAL_URL (set by Render); override in dashboard if needed
