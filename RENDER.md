@@ -27,26 +27,56 @@ Names match your **.env**. Set values in Render **Environment** tab (never commi
 
 `API_URL` is optional; app falls back to `RENDER_EXTERNAL_URL` if unset.
 
-## Monorepo (backend in a subfolder)
+## Monorepo (backend in this folder)
 
-**render.yaml** sets `rootDir: fastify_backend` and `startCommand: node dist/main.js` so the app runs from the backend folder.
+Render runs from **repo root** by default. The built file is `dist/main.js` **inside this folder** (`fastify_backend`), so you must set **Root Directory** so build and start run from here.
 
-If the deploy still fails, set **Root Directory** in Render to `fastify_backend`: **Settings** → **Root Directory** → `fastify_backend` → Save and redeploy.
+### Manual setup (recommended)
+
+In Render **Settings** → **Build & Deploy**:
+
+| Setting | Value |
+|--------|--------|
+| **Root Directory** | `fastify_backend` |
+| **Build Command** | `npm ci && npm run build` |
+| **Start Command** | `node dist/main.js` |
+
+If you **cannot** set Root Directory (e.g. one repo, multiple services), use:
+
+| Setting | Value |
+|--------|--------|
+| **Root Directory** | *(leave empty)* |
+| **Build Command** | `cd fastify_backend && npm ci && npm run build` |
+| **Start Command** | `bash fastify_backend/render-start.sh` |
+
+### Blueprint
+
+`render.yaml` is in this folder. To use it: **New > Blueprint**, connect your repo, and set **Blueprint path** to `fastify_backend/render.yaml`. It configures `rootDir: fastify_backend` and the same build/start commands.
+
+## Deploy checklist (if local works but Render fails)
+
+1. **Root Directory** – Must be `fastify_backend` (or use the alternate Build/Start commands above).
+2. **Build log** – In Render, open the **Build** log and confirm you see `✅ Build completed successfully!` and that the build ran inside `fastify_backend` (paths should contain `fastify_backend`).
+3. **Runtime log** – If build succeeds but the service crashes, open **Logs** and copy the exact error (e.g. missing module, env var, database connection).
+4. **Environment** – In **Environment**, set at least: `DATABASE_URL` (or `DATABASE_URL_POSTGRES`), `DATABASE_TYPE=postgresql`, `FRONTEND_URL`, `JWT_SECRET`, `COOKIE_SECRET`. Do **not** set `PORT` (Render sets it).
 
 ## Common deploy failures
 
 | Failure | Fix |
 |--------|-----|
-| **Deploy: "Cannot find module ... dist/main.js" or "... src/dist/main.js"** | Start Command must be exactly `node dist/main.js` (no `src/`). Set **Root Directory** to `fastify_backend` so the run directory contains `dist/main.js`. |
-| **Build: "Cannot find module" / no package.json** | Set **Root Directory** to the backend folder (e.g. `fastify_backend`) if you use a monorepo. |
-| **Build: Prisma / tsup fails** | Ensure **Build Command** is `npm ci && npm run build`. Node 18+ (Render default is fine). |
-| **Runtime: "Missing required environment variable"** | Set **DATABASE_URL**, **FRONTEND_URL**, and ensure **JWT_SECRET** and **COOKIE_SECRET** exist (Render can generate them). |
-| **Runtime: App not listening / 503** | Render sets **PORT** automatically; the app uses `env.PORT`. Do not override PORT in the dashboard. |
-| **Health check fails** | Health path is `/api/v1/health`. If your API is under a different base path, set **Health Check Path** in Render to match. |
+| **"Cannot find module ... src/dist/main.js"** | Render is running from repo root. Set **Root Directory** to `fastify_backend`, or use Start Command `bash fastify_backend/render-start.sh` and Build `cd fastify_backend && npm ci && npm run build`. |
+| **"Cannot find module ... dist/main.js"** | Start Command must run from `fastify_backend`. Use Root Directory `fastify_backend` + `node dist/main.js`, or `bash fastify_backend/render-start.sh` from repo root. |
+| **Build: "Cannot find module" / no package.json** | Set **Root Directory** to `fastify_backend` or use Build Command `cd fastify_backend && npm ci && npm run build`. |
+| **Build: Prisma / tsup fails** | Use Build Command `npm ci && npm run build` from `fastify_backend`. Node 18+ (Render default is fine). |
+| **Runtime: "Missing required environment variable"** | Set **DATABASE_URL**, **FRONTEND_URL**, **JWT_SECRET**, **COOKIE_SECRET** in Render **Environment**. |
+| **Runtime: App not listening / 503** | Render sets **PORT**; app reads `env.PORT`. Do not set PORT in the dashboard. Ensure **HOST** is `0.0.0.0` (Blueprint sets this). |
+| **Health check fails** | Set **Health Check Path** to `/api/v1/health`. |
 
 ## Build and start
 
-- **Build:** `npm ci && npm run build` (install deps, run Prisma generate + tsup).
-- **Start:** `node dist/main.js` (from **render.yaml**; run from backend root).
+- **Build:** `npm ci && npm run build`
+- **Start:** `node dist/main.js`
+
+(Both run from `fastify_backend` when Root Directory is set.)
 
 After a successful deploy, the API is available at the URL Render shows (e.g. `https://livebhoomi-api.onrender.com`).

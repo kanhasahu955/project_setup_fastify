@@ -1,0 +1,57 @@
+# Render Blueprint – run from this folder (fastify_backend).
+# In Render: New > Blueprint, set Blueprint path to fastify_backend/render.yaml.
+# Or create a Web Service manually with Root Directory = fastify_backend.
+# Set secret env vars in Render dashboard; never commit .env.
+
+services:
+  - type: web
+    name: livebhoomi-api
+    runtime: node
+    region: oregon
+    plan: free
+    # Service root is this folder (fastify_backend) so dist/main.js is found
+    rootDir: fastify_backend
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: "0.0.0.0"
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_TYPE
+        value: postgresql
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_MONGODB
+        sync: false
+      - key: DATABASE_URL_MYSQL
+        sync: false
+      - key: DATABASE_URL_POSTGRES
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: USE_HTTPS
+        value: "false"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: "Live Bhoomi"
+      - key: IMAGEKIT_PUBLIC_KEY
+        sync: false
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: IMAGEKIT_URL_ENDPOINT
+        sync: false
