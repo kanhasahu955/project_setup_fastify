@@ -23,6 +23,7 @@ import { initializeImageKit } from '@/config/imagekit.config';
 import { certificatesExist, loadCertificates, getCertificatePaths } from '@/config/certificate.config';
 import requestResponsePlugin from '@/plugins/request-response.plugin';
 import multipartPlugin from '@/plugins/multipart.plugin';
+import redisPlugin from '@/plugins/redis.plugin';
 
 
 class Application {
@@ -121,6 +122,9 @@ class Application {
 
         this.app.log.info('Registering Multipart Plugin...');
         await this.app.register(multipartPlugin);
+
+        this.app.log.info('Registering Redis cache...');
+        await this.app.register(redisPlugin);
 
         this.app.log.info('Registering Swagger...');
         await registerSwagger(this.app);

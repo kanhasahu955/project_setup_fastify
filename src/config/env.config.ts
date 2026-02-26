@@ -37,6 +37,8 @@ interface EnvConfig {
 	IMAGEKIT_PUBLIC_KEY: string;
 	IMAGEKIT_PRIVATE_KEY: string;
 	IMAGEKIT_URL_ENDPOINT: string;
+	// Redis (optional – for caching)
+	REDIS_URL: string;
 }
 
 class Environment implements EnvConfig {
@@ -67,6 +69,8 @@ class Environment implements EnvConfig {
 	public readonly IMAGEKIT_PUBLIC_KEY: string;
 	public readonly IMAGEKIT_PRIVATE_KEY: string;
 	public readonly IMAGEKIT_URL_ENDPOINT: string;
+	// Redis (optional – empty = no Redis, use in-memory fallback)
+	public readonly REDIS_URL: string;
 
 	constructor() {
 		this.PORT = this.getNumber("PORT", 3000);
@@ -109,6 +113,8 @@ class Environment implements EnvConfig {
 		this.IMAGEKIT_PUBLIC_KEY = this.getString("IMAGEKIT_PUBLIC_KEY", "");
 		this.IMAGEKIT_PRIVATE_KEY = this.getString("IMAGEKIT_PRIVATE_KEY", "");
 		this.IMAGEKIT_URL_ENDPOINT = this.getString("IMAGEKIT_URL_ENDPOINT", "");
+		// Redis – optional; default redis://localhost:6379 for local dev
+		this.REDIS_URL = this.getString("REDIS_URL", "");
 	}
 
 	private getString(key: string, defaultValue?: string): string {
