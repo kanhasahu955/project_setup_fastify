@@ -1,6 +1,6 @@
-# Render Blueprint – run from this folder (fastify_backend).
+# Render Blueprint – backend is in fastify_backend (monorepo).
 # In Render: New > Blueprint, set Blueprint path to fastify_backend/render.yaml.
-# Or create a Web Service manually with Root Directory = fastify_backend.
+# These commands run from REPO ROOT so we cd into fastify_backend for both build and start.
 # Set secret env vars in Render dashboard; never commit .env.
 
 services:
@@ -9,10 +9,9 @@ services:
     runtime: node
     region: oregon
     plan: free
-    # Service root is this folder (fastify_backend) so dist/main.js is found
-    rootDir: fastify_backend
-    buildCommand: npm ci && npm run build
-    startCommand: node dist/main.js
+    # No rootDir: Render often runs from repo root. Build and start must cd into fastify_backend.
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:postgresql
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV

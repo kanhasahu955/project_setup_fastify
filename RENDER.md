@@ -33,21 +33,20 @@ Render runs from **repo root** by default. The built file is `dist/main.js` **in
 
 ### Manual setup (recommended)
 
+Render often runs commands from **repo root** (`/opt/render/project/src`). Use these so the backend runs from `fastify_backend`:
+
 In Render **Settings** → **Build & Deploy**:
-
-| Setting | Value |
-|--------|--------|
-| **Root Directory** | `fastify_backend` |
-| **Build Command** | `npm ci && npm run build` |
-| **Start Command** | `node dist/main.js` |
-
-If you **cannot** set Root Directory (e.g. one repo, multiple services), use:
 
 | Setting | Value |
 |--------|--------|
 | **Root Directory** | *(leave empty)* |
 | **Build Command** | `cd fastify_backend && npm ci && npm run build` |
 | **Start Command** | `bash fastify_backend/render-start.sh` |
+
+If you prefer to set **Root Directory** to `fastify_backend`, then use:
+
+| **Build Command** | `npm ci && npm run build` |
+| **Start Command** | `node dist/main.js` |
 
 ### Blueprint
 
