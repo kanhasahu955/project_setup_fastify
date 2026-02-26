@@ -29,7 +29,7 @@ Names match your **.env**. Set values in Render **Environment** tab (never commi
 
 ## Monorepo (backend in a subfolder)
 
-**render.yaml** uses `startCommand: cd fastify_backend && node dist/main.js` so the app runs from the backend folder. No separate start script.
+**render.yaml** sets `rootDir: fastify_backend` and `startCommand: node dist/main.js` so the app runs from the backend folder.
 
 If the deploy still fails, set **Root Directory** in Render to `fastify_backend`: **Settings** → **Root Directory** → `fastify_backend` → Save and redeploy.
 
@@ -37,7 +37,7 @@ If the deploy still fails, set **Root Directory** in Render to `fastify_backend`
 
 | Failure | Fix |
 |--------|-----|
-| **Deploy: "Cannot find module ... dist/main.js"** | **render.yaml** has `startCommand: cd fastify_backend && node dist/main.js`. Or set **Root Directory** to `fastify_backend` in Render. |
+| **Deploy: "Cannot find module ... dist/main.js" or "... src/dist/main.js"** | Start Command must be exactly `node dist/main.js` (no `src/`). Set **Root Directory** to `fastify_backend` so the run directory contains `dist/main.js`. |
 | **Build: "Cannot find module" / no package.json** | Set **Root Directory** to the backend folder (e.g. `fastify_backend`) if you use a monorepo. |
 | **Build: Prisma / tsup fails** | Ensure **Build Command** is `npm ci && npm run build`. Node 18+ (Render default is fine). |
 | **Runtime: "Missing required environment variable"** | Set **DATABASE_URL**, **FRONTEND_URL**, and ensure **JWT_SECRET** and **COOKIE_SECRET** exist (Render can generate them). |
@@ -47,6 +47,6 @@ If the deploy still fails, set **Root Directory** in Render to `fastify_backend`
 ## Build and start
 
 - **Build:** `npm ci && npm run build` (install deps, run Prisma generate + tsup).
-- **Start:** `cd fastify_backend && node dist/main.js` (from **render.yaml**).
+- **Start:** `node dist/main.js` (from **render.yaml**; run from backend root).
 
 After a successful deploy, the API is available at the URL Render shows (e.g. `https://livebhoomi-api.onrender.com`).

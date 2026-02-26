@@ -10,8 +10,8 @@ services:
     rootDir: fastify_backend
     # package.json: "build": "npm run prisma:generate:all && tsup"
     buildCommand: npm ci && npm run build
-    # Run from backend folder then start (package.json "start": "node dist/main.js")
-    startCommand: cd fastify_backend && node dist/main.js
+    # With rootDir: fastify_backend, cwd is already the backend folder. Use dist/main.js (no src/).
+    startCommand: node dist/main.js
     healthCheckPath: /api/v1/health
     envVars:
       # Server (PORT is set by Render; do not add here)
