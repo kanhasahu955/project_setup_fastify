@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Live Bhoomi Backend API - A modern RESTful API built with Fastify, TypeScript, and Prisma",
   "main": "dist/main.js",
   "scripts": {
