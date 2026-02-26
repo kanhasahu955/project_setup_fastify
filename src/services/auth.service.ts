@@ -71,6 +71,8 @@ class AuthService {
         if (!emailResult.success) {
             // Clean up OTP if email fails
             await prisma.otp.deleteMany({ where: { email } });
+            const reason = emailResult.error ?? "Unknown";
+            console.error("[auth] Register: email send failed:", reason);
             throw new Error("Failed to send verification email. Please try again.");
         }
 
@@ -189,6 +191,8 @@ class AuthService {
         });
 
         if (!emailResult.success) {
+            const reason = emailResult.error ?? "Unknown";
+            console.error("[auth] Resend OTP: email send failed:", reason);
             throw new Error("Failed to send verification email. Please try again.");
         }
 
