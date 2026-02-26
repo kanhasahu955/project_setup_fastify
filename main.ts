@@ -24,6 +24,7 @@ import { certificatesExist, loadCertificates, getCertificatePaths } from '@/conf
 import requestResponsePlugin from '@/plugins/request-response.plugin';
 import multipartPlugin from '@/plugins/multipart.plugin';
 import redisPlugin from '@/plugins/redis.plugin';
+import socketPlugin from '@/plugins/socket.plugin';
 
 
 class Application {
@@ -126,6 +127,9 @@ class Application {
         this.app.log.info('Registering Redis cache...');
         await this.app.register(redisPlugin);
 
+        this.app.log.info('Registering Socket.IO...');
+        await this.app.register(socketPlugin);
+
         this.app.log.info('Registering Swagger...');
         await registerSwagger(this.app);
 
@@ -150,6 +154,7 @@ class Application {
             🔷 GraphQL: ${protocol}://localhost:${this.port}/graphql
             🔷 GraphiQL: ${protocol}://localhost:${this.port}/graphiql
             🏥 Health Check: ${protocol}://localhost:${this.port}/api/v1/health
+            🔌 Socket.IO: same host (use for live updates & chat)
             🌍 Environment: ${env.NODE_ENV}
         `);
     }

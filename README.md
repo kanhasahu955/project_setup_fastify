@@ -10,6 +10,7 @@ A modern, high-performance **RESTful API** and **GraphQL API** built with **Fast
 - 🔒 **Type-safe** TypeScript
 - 💾 **Multi-database** – MongoDB, MySQL, or PostgreSQL via Prisma
 - 📦 **Redis caching** – optional; in-memory fallback when `REDIS_URL` is not set
+- 🔌 **Socket.IO** – same HTTP server; rooms for chat, `live:update` for real-time DB updates (aligned with `live_bhoomi_ui` hooks)
 - 🔐 **OTP-based auth** with email verification
 - 🆔 **KYC** (Aadhar & PAN)
 - 📊 **Pino** logging, **Helmet**, **CORS**, rate limiting
@@ -36,6 +37,7 @@ A modern, high-performance **RESTful API** and **GraphQL API** built with **Fast
 - [Image Upload](#-image-upload)
 - [Scripts](#-scripts)
 - [Redis caching](#-redis-caching)
+- [Socket.IO](#-socketio)
 - [Deployment](#-deployment)
 - [Releases & versioning](#-releases--versioning)
 
@@ -635,6 +637,37 @@ await this.cache.delByPattern('user:*');
 **Raw client (when Redis connected):** `app.redis` (null when using in-memory).
 
 See `src/plugins/redis.plugin.ts` and `.env.example` for `REDIS_URL`.
+
+---
+
+## 🔌 Socket.IO
+
+Socket.IO is attached to the same HTTP server (no extra port). It is used by **live_bhoomi_ui** for live DB updates and chat.
+
+**Events (aligned with `live_bhoomi_ui/src/socket/events.ts`):**
+
+| Event        | Direction   | Description                                      |
+|-------------|-------------|--------------------------------------------------|
+| `joinRoom`  | client → server | Join a room (e.g. chat or entity room)       |
+| `leaveRoom` | client → server | Leave a room                                |
+| `message`   | client ↔ server | Chat message (server broadcasts to room)     |
+| `typing`    | client ↔ server | Typing indicator (server broadcasts to room) |
+| `live:update` | server → client | Broadcast DB/entity updates (emit from routes) |
+
+**Emitting live updates from a route or service:**
+
+```ts
+// In any route or service where you have the Fastify instance (e.g. request.server in a route, or this.app in a controller)
+import { SOCKET_LIVE_UPDATE } from '@/socket/events'
+
+// To all connected clients
+this.app.io.emit(SOCKET_LIVE_UPDATE, { type: 'user', id: '123', payload: user })
+
+// To a specific room (e.g. after client joined via joinRoom)
+this.app.io.to(roomId).emit(SOCKET_LIVE_UPDATE, { type: 'order', id: orderId, payload: order })
+```
+
+CORS for Socket.IO uses `FRONTEND_URL` (and in production `API_URL` / Render URL). No extra env is required; the UI connects to the same host as the API.
 
 ---
 
