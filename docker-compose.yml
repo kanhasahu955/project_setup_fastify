@@ -1,0 +1,55 @@
+# Same structure as live_bhoomi_ui: dev / qa / prod profiles.
+# Usage: docker compose --profile <dev|qa|prod> up --build
+
+services:
+  # ----------  DEV: tsx watch with hot reload  ----------
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=8000
+    env_file:
+      - .env
+    command: sh -c "npm run prisma:generate:all && npx tsx watch main.ts"
+    profiles:
+      - dev
+
+  # ----------  QA: production build, QA env  ----------
+  api-qa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    ports:
+      - "8080:8000"
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+    env_file:
+      - .env
+    profiles:
+      - qa
+
+  # ----------  PROD: production build  ----------
+  api-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+    env_file:
+      - .env
+    profiles:
+      - prod
