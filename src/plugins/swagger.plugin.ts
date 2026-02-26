@@ -42,28 +42,10 @@ export async function registerSwagger(app: FastifyInstance) {
                 description: 'Find more information here'
             },
             servers: (() => {
-                const renderUrl = process.env.RENDER_EXTERNAL_URL;
-                const apiUrl = env.API_URL;
-                
-                if (env.NODE_ENV === 'production') {
-                    const productionUrl = apiUrl || renderUrl || 'https://sk-bakery-3blw.onrender.com';
-                    return [
-                        {
-                            url: productionUrl,
-                            description: 'Production server'
-                        }
-                    ];
-                }
-                
+                const productionUrl = env.API_URL || process.env.RENDER_EXTERNAL_URL || 'https://live-bhoomi.onrender.com';
                 return [
-                    {
-                        url: `http://localhost:${env.PORT}`,
-                        description: 'Development server'
-                    },
-                    {
-                        url: `http://127.0.0.1:${env.PORT}`,
-                        description: 'Development server (127.0.0.1)'
-                    }
+                    { url: productionUrl, description: 'Production' },
+                    { url: `http://localhost:${env.PORT}`, description: 'Local' }
                 ];
             })(),
             tags: [
@@ -288,7 +270,14 @@ export async function registerSwagger(app: FastifyInstance) {
             }
         },
         staticCSP: false,
-        transformSpecification: (swaggerObject: any, _request: any, _reply: any) => {
+        transformSpecification: (swaggerObject: any, request: any, _reply: any) => {
+            // Use request origin as server URL so "Try it out" targets the same host (fixes localhost on production)
+            const host = request?.headers?.host;
+            const proto = request?.headers?.['x-forwarded-proto'] || (request?.protocol === 'https' ? 'https' : 'http');
+            if (host) {
+                const baseUrl = `${proto}://${host}`;
+                swaggerObject.servers = [{ url: baseUrl, description: 'This server' }];
+            }
             // Transform isFile properties to proper OpenAPI 3.0 binary format
             if (swaggerObject.paths) {
                 for (const path of Object.values(swaggerObject.paths) as any[]) {

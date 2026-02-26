@@ -1,25 +1,23 @@
 # Live Bhoomi Backend API
 
-A modern, high-performance **RESTful API** and **GraphQL API** built with **Fastify**, **TypeScript**, **Prisma**, and **MongoDB**.
+A modern, high-performance **RESTful API** and **GraphQL API** built with **Fastify**, **TypeScript**, **Prisma**, and optional **Redis** caching.
 
 ## 🚀 Features
 
 - 🚀 **High-performance** Fastify framework
-- 📝 **Dual API Support** - REST API and GraphQL API
-- 🔷 **GraphQL** with Mercurius (Fastify GraphQL adapter)
-- 📚 **Automatic API documentation** with Swagger/OpenAPI
-- 🔒 **Type-safe** with TypeScript
-- 💾 **MongoDB database** with Prisma ORM
-- 🔐 **OTP-based Authentication** with email verification
-- 🆔 **KYC Verification** (Aadhar & PAN card)
-- 📊 **Colorized logging** with Pino
-- 🔄 **Hot reload** in development
-- 🔐 **SSL/HTTPS support** with self-signed certificates
-- 🛡️ **Security** with Helmet, CORS, Rate Limiting
-- 🔑 **JWT Authentication** with cookie support
-- 📸 **ImageKit Integration** for image uploads
-- 📧 **Email Service** with Resend/Nodemailer
-- 📋 **HTTP Client files** for API testing
+- 📝 **Dual API** – REST and GraphQL (Mercurius)
+- 📚 **API docs** – Swagger UI and Scalar Reference (server URL follows request host in production)
+- 🔒 **Type-safe** TypeScript
+- 💾 **Multi-database** – MongoDB, MySQL, or PostgreSQL via Prisma
+- 📦 **Redis caching** – optional; in-memory fallback when `REDIS_URL` is not set
+- 🔐 **OTP-based auth** with email verification
+- 🆔 **KYC** (Aadhar & PAN)
+- 📊 **Pino** logging, **Helmet**, **CORS**, rate limiting
+- 🔑 **JWT** with cookie support
+- 📸 **ImageKit** image uploads
+- 📧 **Email** (Resend/Nodemailer)
+- 🔐 **SSL/HTTPS** (self-signed certs for dev)
+- 📋 **HTTP client** files for testing
 
 ---
 
@@ -37,6 +35,7 @@ A modern, high-performance **RESTful API** and **GraphQL API** built with **Fast
 - [KYC Verification](#-kyc-verification)
 - [Image Upload](#-image-upload)
 - [Scripts](#-scripts)
+- [Redis caching](#-redis-caching)
 - [Deployment](#-deployment)
 
 ---
@@ -54,6 +53,8 @@ A modern, high-performance **RESTful API** and **GraphQL API** built with **Fast
 | [Zod](https://zod.dev/) | Schema validation |
 | [Pino](https://getpino.io/) | Logging |
 | [Swagger](https://swagger.io/) | API documentation |
+| [Scalar](https://github.com/scalar/scalar) | Modern API reference UI |
+| [Redis](https://redis.io/) / [ioredis](https://github.com/redis/ioredis) | Caching (optional) |
 | [ImageKit](https://imagekit.io/) | Image hosting |
 | [Resend](https://resend.com/) | Email service |
 | [JWT](https://jwt.io/) | Authentication |
@@ -64,108 +65,88 @@ A modern, high-performance **RESTful API** and **GraphQL API** built with **Fast
 
 ### Prerequisites
 
-- **Node.js** >= 18.x
-- **npm** or **yarn**
-- **MongoDB** (local or cloud instance)
-- **MongoDB Replica Set** (required for Prisma transactions)
+- **Node.js** >= 18
+- **npm**
+- **Database**: MongoDB, MySQL, or PostgreSQL (see [Database Setup](#-database-setup))
+- **Redis** (optional; for caching; omit `REDIS_URL` to use in-memory cache)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd project_setup_fastify
+# From repo root
+cd fastify_backend
 
 # Install dependencies
 npm install
 
-# Set up environment variables
+# Environment
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env: DATABASE_TYPE, DATABASE_URL (or DATABASE_URL_MONGODB / _MYSQL / _POSTGRES), etc.
 
-# Set up MongoDB Replica Set (see Database Setup section)
+# Generate Prisma client for your DB (one of)
+npm run prisma:generate:mongodb
+npm run prisma:generate:mysql
+npm run prisma:generate:postgresql
 
-# Generate Prisma client
-npx prisma generate
+# Push schema
+npm run prisma:push:postgresql   # or :mongodb / :mysql
 
-# Push schema to database
-npx prisma db push
-
-# Start development server
-npm run dev
+# Start dev server
+npm run dev:postgresql           # or dev, dev:mongodb, dev:mysql
 ```
 
-### Quick Start
+### Quick start
 
 ```bash
-# Start with HTTP (default)
+# HTTP (default) – uses DATABASE_TYPE from .env
 npm run dev
 
-# Start with HTTPS (requires certificates)
-npm run generate:cert  # First time only
+# Specific DB
+npm run dev:postgresql
+npm run dev:mongodb
+npm run dev:mysql
+
+# HTTPS (generate certs first)
+npm run generate:cert
 npm run dev:https
 ```
 
 ---
 
-## 📁 Project Structure
+## 📁 Project structure
 
 ```
-project_setup_fastify/
-├── certificates/              # SSL certificates (git-ignored)
-│   ├── server.key
-│   └── server.crt
-├── http/                      # HTTP client test files
-│   ├── globals.http
-│   ├── health.http
-│   └── api.http
+fastify_backend/
+├── certificates/           # SSL certs (git-ignored)
+├── http/                   # HTTP client test files
 ├── prisma/
-│   └── schema.prisma          # Database schema
+│   ├── schema.mongodb.prisma
+│   ├── schema.mysql.prisma
+│   └── schema.postgres.prisma
 ├── scripts/
-│   └── generate-cert.ts       # SSL certificate generator
+│   ├── generate-cert.ts
+│   └── setup-database.ts
 ├── src/
-│   ├── @types/                # TypeScript type definitions
-│   ├── config/
-│   │   ├── env.config.ts      # Environment configuration
-│   │   ├── prisma.config.ts   # Prisma client setup
-│   │   ├── imagekit.config.ts # ImageKit configuration
-│   │   └── certificate.config.ts
-│   ├── controllers/           # Route controllers
-│   │   ├── auth.controller.ts
-│   │   ├── user.controller.ts
-│   │   └── imagekit.controller.ts
-│   ├── graphql/               # GraphQL schema & resolvers
-│   │   ├── schema.ts          # GraphQL type definitions
-│   │   ├── resolvers.ts       # GraphQL resolvers
-│   │   └── index.ts
-│   ├── helpers/
-│   │   └── httpStatus.ts     # Response helper utilities
-│   ├── plugins/
-│   │   ├── cors.plugin.ts    # CORS & security setup
-│   │   ├── logger.plugin.ts  # Pino logger config
-│   │   ├── swagger.plugin.ts # Swagger documentation
-│   │   ├── graphql.plugin.ts # GraphQL setup
-│   │   └── multipart.plugin.ts
-│   ├── routes/
-│   │   ├── index.ts          # Route registration
-│   │   ├── user.route.ts     # User & auth routes
-│   │   ├── imagekit.route.ts # Image upload routes
-│   │   └── health.route.ts
-│   ├── schemas/              # OpenAPI/Swagger schemas
-│   │   ├── user.schema.ts
-│   │   └── imagekit.schema.ts
-│   ├── services/             # Business logic
-│   │   ├── auth.service.ts
-│   │   ├── user.service.ts
-│   │   ├── imagekit.service.ts
-│   │   └── mail.service.ts
-│   ├── types/               # TypeScript types
-│   └── validations/         # Zod validation schemas
-│       └── auth.validation.ts
-├── main.ts                 # Application entry point
+│   ├── @types/
+│   ├── config/             # env, prisma, firebase, imagekit, certificate
+│   ├── controllers/
+│   ├── graphql/            # schema, resolvers
+│   ├── plugins/            # cors, logger, swagger, graphql, multipart, redis
+│   ├── routes/              # health, user, imagekit, storage
+│   ├── schemas/
+│   ├── services/
+│   ├── types/
+│   └── validations/
+├── main.ts
+├── render.yaml             # Render Blueprint
+├── render-start.sh         # Start script for Render (monorepo)
 ├── package.json
 ├── tsconfig.json
-└── .env
+├── tsup.config.ts
+├── .env.example
+├── README.md
+├── RENDER.md               # Deploy on Render
+└── DATABASE_SETUP.md
 ```
 
 ---
@@ -197,6 +178,12 @@ JWT_EXPIRES_IN=1d
 # SSL/HTTPS (optional)
 USE_HTTPS=false
 
+# API URL (production; Render uses RENDER_EXTERNAL_URL if unset)
+# API_URL=https://live-bhoomi.onrender.com
+
+# Redis (optional – leave empty for in-memory cache)
+# REDIS_URL=redis://localhost:6379
+
 # Email Service (Resend)
 RESEND_API_KEY=re_your_api_key_here
 SMTP_USER=your-email@gmail.com
@@ -211,62 +198,43 @@ IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_id/
 
 ---
 
-## 🗄️ Database Setup
+## 🗄️ Database setup
 
-### MongoDB Replica Set (Required)
+The API supports **MongoDB**, **MySQL**, or **PostgreSQL**. Set `DATABASE_TYPE` and the matching URL in `.env`.
 
-Prisma requires MongoDB to run as a replica set for transactions. Here's how to set it up:
+| DB | Env vars | Generate & push |
+|----|----------|------------------|
+| PostgreSQL | `DATABASE_TYPE=postgresql`, `DATABASE_URL` or `DATABASE_URL_POSTGRES` | `prisma:generate:postgresql`, `prisma:push:postgresql` |
+| MySQL | `DATABASE_TYPE=mysql`, `DATABASE_URL_MYSQL` | `prisma:generate:mysql`, `prisma:push:mysql` |
+| MongoDB | `DATABASE_TYPE=mongodb`, `DATABASE_URL_MONGODB` | `prisma:generate:mongodb`, `prisma:push:mongodb` |
 
-#### Option 1: Local MongoDB
+**MongoDB:** Prisma needs a replica set for transactions. Use MongoDB Atlas (replica set by default) or run local MongoDB with `--replSet rs0` and `rs.initiate()` in mongosh.
 
-```bash
-# Terminal 1: Start MongoDB with replica set
-mkdir -p ~/data/mongodb
-mongod --replSet rs0 --dbpath ~/data/mongodb --port 27017
-
-# Terminal 2: Initialize replica set (first time only)
-mongosh
-rs.initiate()
-
-# Verify
-rs.status()
-```
-
-#### Option 2: MongoDB Atlas
-
-MongoDB Atlas automatically provides replica sets. Just use your connection string:
-
-```env
-DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
-```
-
-### Push Schema
+Full steps: **[DATABASE_SETUP.md](DATABASE_SETUP.md)**.
 
 ```bash
-# Generate Prisma client
-npx prisma generate
-
-# Push schema to database
-npx prisma db push
-
-# Open Prisma Studio (optional)
-npx prisma studio
+# Example: PostgreSQL
+npm run prisma:generate:postgresql
+npm run prisma:push:postgresql
+npx prisma studio --schema=prisma/schema.postgres.prisma
 ```
 
 ---
 
-## 📚 API Documentation
+## 📚 API documentation
 
-### REST API Documentation
+### REST
 
-- **Swagger UI**: http://localhost:8000/documentation
-- **Scalar API Reference**: http://localhost:8000/reference
-- **OpenAPI JSON**: http://localhost:8000/documentation/json
+- **Swagger UI**: http://localhost:8000/documentation  
+- **Scalar API Reference**: http://localhost:8000/reference  
+- **OpenAPI JSON**: http://localhost:8000/documentation/json  
 
-### GraphQL API
+In production (e.g. https://live-bhoomi.onrender.com), the server URL in Swagger/Scalar is set from the request host, so "Try it out" uses the correct base URL.
 
-- **GraphQL Endpoint**: http://localhost:8000/graphql
-- **GraphiQL IDE**: http://localhost:8000/graphiql
+### GraphQL
+
+- **Endpoint**: http://localhost:8000/graphql  
+- **GraphiQL**: http://localhost:8000/graphiql
 
 ---
 
@@ -644,78 +612,82 @@ Returns authentication parameters for direct client-side uploads to ImageKit.
 
 ---
 
+## 📦 Redis caching
+
+When `REDIS_URL` is set, the app uses Redis for caching; otherwise it uses an in-memory store (fine for local dev).
+
+**Usage in routes:** `app.cache` (decorated by the Redis plugin).
+
+```ts
+// String
+await this.cache.set('key', 'value', 300);  // optional TTL seconds
+const val = await this.cache.get('key');
+
+// JSON
+await this.cache.setJson('user:1', { name: 'Jane' }, 300);
+const user = await this.cache.getJson<{ name: string }>('user:1');
+
+await this.cache.del('key');
+await this.cache.delByPattern('user:*');
+```
+
+**Raw client (when Redis connected):** `app.redis` (null when using in-memory).
+
+See `src/plugins/redis.plugin.ts` and `.env.example` for `REDIS_URL`.
+
+---
+
 ## 📜 Scripts
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start development server (HTTP) |
-| `npm run dev:https` | Start development server (HTTPS) |
-| `npm run build` | Build for production |
-| `npm run start` | Start production server |
+| `npm run dev` | Dev server (HTTP; uses DATABASE_TYPE from .env) |
+| `npm run dev:postgresql` / `dev:mongodb` / `dev:mysql` | Dev with specific DB |
+| `npm run dev:https` | Dev with HTTPS (run `generate:cert` first) |
+| `npm run build` | Build for production (tsup) |
+| `npm run start` | Run production build |
 | `npm run start:prod` | Start with NODE_ENV=production |
-| `npm run build:check` | Type check without building |
-| `npm run clean` | Remove dist folder |
+| `npm run build:check` | TypeScript check only |
+| `npm run clean` | Remove dist |
 | `npm run generate:cert` | Generate SSL certificates |
-| `npm run prisma:generate` | Generate Prisma client |
-| `npm run prisma:push` | Push schema to database |
+| `npm run prisma:generate:all` | Generate Prisma clients (all DBs) |
+| `npm run prisma:generate:postgresql` | Generate client for PostgreSQL |
+| `npm run prisma:push:postgresql` | Push schema (use :mongodb / :mysql for others) |
 | `npm run prisma:studio` | Open Prisma Studio |
 | `npm run test` | Run tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage |
-| `npm run http` | Run all HTTP client tests |
-| `npm run lint` | Type check with TypeScript |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run test:coverage` | Coverage report |
+| `npm run http` | Run HTTP client tests |
+| `npm run lint` | TypeScript check |
 
 ---
 
 ## 🚀 Deployment
 
-### Build for Production
+### Build for production
 
 ```bash
-# Install dependencies
+cd fastify_backend
 npm ci
-
-# Generate Prisma client
-npm run prisma:generate
-
-# Build the application
+npm run prisma:generate:postgresql   # or :mongodb / :mysql
 npm run build
-
-# Start production server
 npm run start:prod
 ```
 
-### Environment Variables for Production
+### Deploy on Render
 
-```env
-NODE_ENV=production
-PORT=8000
-HOST=0.0.0.0
-DATABASE_URL=mongodb+srv://...
-LOG_LEVEL=info
-FRONTEND_URL=https://your-frontend.com
-COOKIE_SECRET=<generate-secure-random-string>
-JWT_SECRET=<generate-secure-random-string>
-JWT_EXPIRES_IN=1d
-USE_HTTPS=false
-RESEND_API_KEY=re_...
-IMAGEKIT_PRIVATE_KEY=private_...
-IMAGEKIT_PUBLIC_KEY=public_...
-IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/...
-```
+The backend is set up to deploy on **Render** from the `fastify_backend` folder (monorepo). Use the Blueprint or manual settings as described in **[RENDER.md](RENDER.md)**.
 
-### Production Checklist
+**Important:** Build and start commands must run from `fastify_backend`. From repo root use:
 
-- [ ] Set `NODE_ENV=production`
-- [ ] Use strong secrets for `JWT_SECRET` and `COOKIE_SECRET`
-- [ ] Configure proper `FRONTEND_URL` for CORS
-- [ ] Set up MongoDB connection with replica set
-- [ ] Configure SSL/TLS (via reverse proxy or `USE_HTTPS=true`)
-- [ ] Set up logging and monitoring
-- [ ] Configure rate limiting
-- [ ] Set up health check monitoring
-- [ ] Configure email service (Resend API key)
-- [ ] Configure ImageKit credentials
+- **Build:** `cd fastify_backend && npm ci && npm run build`
+- **Start:** `bash fastify_backend/render-start.sh`
+
+Set **Root Directory** to `fastify_backend` in Render if you prefer; then use `npm ci && npm run build` and `node dist/main.js`.
+
+### Production env (summary)
+
+See `.env.example` and [RENDER.md](RENDER.md). Required: `DATABASE_URL` (or `DATABASE_URL_POSTGRES` etc.), `DATABASE_TYPE`, `FRONTEND_URL`, `JWT_SECRET`, `COOKIE_SECRET`. Optional: `REDIS_URL`, `API_URL`, ImageKit, Resend, Firebase.
 
 ---
 
@@ -782,12 +754,13 @@ For support, email support@livebhoomi.com or create an issue in the repository.
 
 ## 🙏 Acknowledgments
 
-- [Fastify](https://www.fastify.io/) - Fast and low overhead web framework
-- [Prisma](https://www.prisma.io/) - Next-generation ORM
-- [Mercurius](https://mercurius.dev/) - GraphQL adapter for Fastify
-- [ImageKit](https://imagekit.io/) - Image optimization and CDN
-- [Resend](https://resend.com/) - Email API
+- [Fastify](https://www.fastify.io/) – Web framework
+- [Prisma](https://www.prisma.io/) – ORM (MongoDB, MySQL, PostgreSQL)
+- [Mercurius](https://mercurius.dev/) – GraphQL for Fastify
+- [ioredis](https://github.com/redis/ioredis) – Redis client
+- [ImageKit](https://imagekit.io/) – Image CDN
+- [Resend](https://resend.com/) – Email API
 
 ---
 
-**Made with ❤️ for Live Bhoomi**
+**Live Bhoomi Backend** – [RENDER.md](RENDER.md) for production deploy.
