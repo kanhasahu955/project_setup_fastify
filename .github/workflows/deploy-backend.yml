@@ -1,15 +1,15 @@
-# DEPRECATED for monorepo: use repo root .github/workflows/deploy-backend.yml (triggers on api-v* tags).
-# This file is kept for reference. Backend releases: see fastify_backend/RELEASE.md.
+# Backend release: runs on api-v* tags. Push: git tag api-v1.0.0 && git push origin api-v1.0.0
+# To run on GitHub: copy this file to repo root .github/workflows/ (see RELEASE.md).
 
-name: Deploy
+name: Deploy Backend
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'api-v*'
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-backend-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -17,8 +17,11 @@ env:
 
 jobs:
   build-and-release:
-    name: Build & Release
+    name: Build & Release Backend
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fastify_backend
     permissions:
       contents: write
     steps:
@@ -30,7 +33,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: fastify_backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -47,16 +50,21 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ github.ref_name }}
-          path: dist/
+          name: backend-dist-${{ github.ref_name }}
+          path: fastify_backend/dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          name: Backend ${{ github.ref_name }}
+          body: |
+            Live Bhoomi API release **${{ github.ref_name }}**.
+            See [fastify_backend/README.md](README.md) for run instructions.
           draft: false
           generate_release_notes: true
-          files: dist/**/*
+          files: |
+            fastify_backend/dist/*.js
+            fastify_backend/dist/*.js.map
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

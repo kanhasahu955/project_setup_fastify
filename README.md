@@ -37,6 +37,7 @@ A modern, high-performance **RESTful API** and **GraphQL API** built with **Fast
 - [Scripts](#-scripts)
 - [Redis caching](#-redis-caching)
 - [Deployment](#-deployment)
+- [Releases & versioning](#-releases--versioning)
 
 ---
 
@@ -688,6 +689,17 @@ Set **Root Directory** to `fastify_backend` in Render if you prefer; then use `n
 ### Production env (summary)
 
 See `.env.example` and [RENDER.md](RENDER.md). Required: `DATABASE_URL` (or `DATABASE_URL_POSTGRES` etc.), `DATABASE_TYPE`, `FRONTEND_URL`, `JWT_SECRET`, `COOKIE_SECRET`. Optional: `REDIS_URL`, `API_URL`, ImageKit, Resend, Firebase.
+
+---
+
+## 🏷️ Releases & versioning
+
+Releases are driven by **Git tags** and created as **GitHub Releases** with the built `dist/` artifact. Use the **api-v*** tag prefix (e.g. `api-v1.0.0`) so backend releases stay separate from the frontend.
+
+1. Bump version: `npm run version:patch` (or `version:minor` / `version:major`) in `fastify_backend`.
+2. Commit `package.json`, then create and push the tag: `git tag api-v1.0.1 && git push origin api-v1.0.1`.
+
+Pushing an `api-v*` tag runs the [Deploy Backend](.github/workflows/deploy-backend.yml) workflow (lint, test, build, GitHub Release). The workflow lives in this folder; see [RELEASE.md](RELEASE.md) for steps and how to run it from GitHub (copy to repo root if needed).
 
 ---
 
