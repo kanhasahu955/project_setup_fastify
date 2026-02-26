@@ -29,17 +29,15 @@ Names match your **.env**. Set values in Render **Environment** tab (never commi
 
 ## Monorepo (backend in a subfolder)
 
-**"Cannot find module ... dist/main.js"** means the start command ran from repo root instead of the backend folder.
+**render.yaml** uses `startCommand: cd fastify_backend && node dist/main.js` so the app runs from the backend folder. No separate start script.
 
-1. **start.sh** at the repo root (same level as `fastify_backend/`) runs the app from the backend folder. **render.yaml** uses `startCommand: sh start.sh`. Commit and push so Render has `start.sh` and the updated start command.
-2. **If the deploy still runs `node dist/main.js`** (dashboard override), set **Start Command** in Render to **`sh start.sh`**: **Settings** → **Build & Deploy** → **Start Command** → `sh start.sh` → Save and redeploy.
-3. Alternatively set **Root Directory** to `fastify_backend` so build and start both run from that folder.
+If the deploy still fails, set **Root Directory** in Render to `fastify_backend`: **Settings** → **Root Directory** → `fastify_backend` → Save and redeploy.
 
 ## Common deploy failures
 
 | Failure | Fix |
 |--------|-----|
-| **Deploy: "Cannot find module ... dist/main.js"** | Use **Start Command** `sh start.sh` (repo root has this script). Or set **Root Directory** to `fastify_backend` in Render. |
+| **Deploy: "Cannot find module ... dist/main.js"** | **render.yaml** has `startCommand: cd fastify_backend && node dist/main.js`. Or set **Root Directory** to `fastify_backend` in Render. |
 | **Build: "Cannot find module" / no package.json** | Set **Root Directory** to the backend folder (e.g. `fastify_backend`) if you use a monorepo. |
 | **Build: Prisma / tsup fails** | Ensure **Build Command** is `npm ci && npm run build`. Node 18+ (Render default is fine). |
 | **Runtime: "Missing required environment variable"** | Set **DATABASE_URL**, **FRONTEND_URL**, and ensure **JWT_SECRET** and **COOKIE_SECRET** exist (Render can generate them). |
@@ -49,6 +47,6 @@ Names match your **.env**. Set values in Render **Environment** tab (never commi
 ## Build and start
 
 - **Build:** `npm ci && npm run build` (install deps, run Prisma generate + tsup).
-- **Start:** `sh start.sh` (monorepo) or `node dist/main.js` (if Root Directory = `fastify_backend`).
+- **Start:** `cd fastify_backend && node dist/main.js` (from **render.yaml**).
 
 After a successful deploy, the API is available at the URL Render shows (e.g. `https://livebhoomi-api.onrender.com`).
