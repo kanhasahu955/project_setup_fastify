@@ -13,6 +13,7 @@ import {
     verifyKycSchema,
 } from "@/validations/auth.validation";
 import type { MercuriusContext } from "mercurius";
+import { HttpStatusCode } from "@/utils/httpStatusCodes.util";
 
 interface Context extends MercuriusContext {
     user?: { id: string; role: string; email?: string };
@@ -454,7 +455,8 @@ export const resolvers = {
                 const errors = formatZodErrors(validation.error);
                 throw new Error(`Validation failed: ${errors.map((e: any) => e.message).join(", ")}`);
             }
-            return authService.register(validation.data);
+            const data = await authService.register(validation.data);
+            return { success: true, message: data.message, data, statusCode: HttpStatusCode.OK };
         },
 
         verifyOtp: async (_: unknown, { input }: { input: any }, context: Context) => {
@@ -465,7 +467,8 @@ export const resolvers = {
             }
             const user = await authService.verifyOtp(validation.data);
             const token = context.app?.jwt.sign({ id: user.id, email: user.email, role: user.role });
-            return { user, token };
+            const data = { user, token };
+            return { success: true, message: "Registration completed successfully", data, statusCode: HttpStatusCode.CREATED };
         },
 
         resendOtp: async (_: unknown, { input }: { input: any }) => {
@@ -474,7 +477,9 @@ export const resolvers = {
                 const errors = formatZodErrors(validation.error);
                 throw new Error(`Validation failed: ${errors.map((e: any) => e.message).join(", ")}`);
             }
-            return authService.resendOtp(validation.data.email);
+            const result = await authService.resendOtp(validation.data.email);
+            const data = { message: result.message };
+            return { success: true, message: result.message, data, statusCode: HttpStatusCode.OK };
         },
 
         login: async (_: unknown, { input }: { input: any }, context: Context) => {
@@ -485,7 +490,8 @@ export const resolvers = {
             }
             const { user } = await authService.login(validation.data);
             const token = context.app?.jwt.sign({ id: user.id, email: user.email, role: user.role });
-            return { user, token };
+            const data = { user, token };
+            return { success: true, message: "Login successful", data, statusCode: HttpStatusCode.OK };
         },
 
         // ============================================
@@ -813,7 +819,7 @@ export const resolvers = {
 
             // Update user's profile rating
             const reviews = await prisma.review.findMany({ where: { userId: input.userId } });
-            const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+            const avgRating = reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviews.length;
 
             await prisma.profile.updateMany({
                 where: { userId: input.userId },
@@ -832,7 +838,7 @@ export const resolvers = {
 
             // Recalculate rating
             const reviews = await prisma.review.findMany({ where: { userId: review.userId } });
-            const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+            const avgRating = reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviews.length;
 
             await prisma.profile.updateMany({
                 where: { userId: review.userId },
@@ -847,7 +853,7 @@ export const resolvers = {
 
             // Recalculate rating
             const reviews = await prisma.review.findMany({ where: { userId: review.userId } });
-            const avgRating = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+            const avgRating = reviews.length ? reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviews.length : 0;
 
             await prisma.profile.updateMany({
                 where: { userId: review.userId },

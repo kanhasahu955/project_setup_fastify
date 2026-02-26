@@ -1,0 +1,72 @@
+# ============================================
+# MUTATIONS
+# ============================================
+
+type Mutation {
+  # Auth mutations (same envelope as REST: success, message, data, statusCode)
+  register(input: RegisterInput!): RegisterApiResponse!
+  verifyOtp(input: VerifyOtpInput!): LoginApiResponse!
+  resendOtp(input: ResendOtpInput!): ResendOtpApiResponse!
+  login(input: LoginInput!): LoginApiResponse!
+
+  # User mutations
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): SuccessResponse!
+  updatePassword(id: ID!, input: UpdatePasswordInput!): SuccessResponse!
+  blockUser(id: ID!): User!
+  unblockUser(id: ID!): User!
+  verifyUser(id: ID!): User!
+  updateUserRole(id: ID!, role: UserRole!): User!
+
+  # Profile mutations
+  upsertProfile(userId: ID!, input: UpdateProfileInput!): Profile!
+
+  # KYC mutations
+  submitAadharKyc(userId: ID!, input: SubmitAadharKycInput!): KycDetails!
+  submitPanKyc(userId: ID!, input: SubmitPanKycInput!): KycDetails!
+  verifyKyc(userId: ID!, input: VerifyKycInput!): KycDetails!
+
+  # Project mutations
+  createProject(input: CreateProjectInput!): Project!
+  updateProject(id: ID!, input: UpdateProjectInput!): Project!
+  deleteProject(id: ID!): SuccessResponse!
+
+  # Listing mutations
+  createListing(input: CreateListingInput!): Listing!
+  updateListing(id: ID!, input: UpdateListingInput!): Listing!
+  deleteListing(id: ID!): SuccessResponse!
+  publishListing(id: ID!): Listing!
+  unpublishListing(id: ID!): Listing!
+  featureListing(id: ID!, days: Int!): Listing!
+  verifyListing(id: ID!): Listing!
+  incrementListingViews(id: ID!): Listing!
+  incrementListingClicks(id: ID!): Listing!
+
+  # Listing images
+  addListingImage(listingId: ID!, input: ListingImageInput!): ListingImage!
+  removeListingImage(imageId: ID!): SuccessResponse!
+  reorderListingImages(listingId: ID!, imageIds: [ID!]!): [ListingImage]!
+
+  # Listing amenities
+  addListingAmenity(listingId: ID!, amenityId: ID!, isHighlighted: Boolean): AmenityOnListing!
+  removeListingAmenity(listingId: ID!, amenityId: ID!): SuccessResponse!
+
+  # Lead mutations
+  createLead(input: CreateLeadInput!): Lead!
+  updateLeadStatus(id: ID!, input: UpdateLeadInput!): Lead!
+  deleteLead(id: ID!): SuccessResponse!
+
+  # Review mutations
+  createReview(input: CreateReviewInput!): Review!
+  updateReview(id: ID!, input: UpdateReviewInput!): Review!
+  deleteReview(id: ID!): SuccessResponse!
+
+  # Amenity mutations (admin)
+  createAmenity(input: CreateAmenityInput!): Amenity!
+  updateAmenity(id: ID!, input: UpdateAmenityInput!): Amenity!
+  deleteAmenity(id: ID!): SuccessResponse!
+
+  # Subscription mutations (admin)
+  createSubscription(input: CreateSubscriptionInput!): Subscription!
+  cancelSubscription(id: ID!): Subscription!
+}

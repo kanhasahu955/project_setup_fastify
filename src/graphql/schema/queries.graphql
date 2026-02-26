@@ -1,0 +1,59 @@
+# ============================================
+# QUERIES
+# ============================================
+
+type Query {
+  # Health
+  health(detailed: Boolean): HealthStatus!
+
+  # User queries
+  me: User
+  user(id: ID!): User
+  users(input: UserListInput): UserListResponse!
+  userStats: UserStats!
+  userExists(email: String, phone: String): ExistsResponse!
+
+  # Profile queries
+  profile(userId: ID!): Profile
+
+  # KYC queries
+  kycStatus(userId: ID!): KycDetails
+
+  # Project queries
+  project(id: ID!): Project
+  projectBySlug(slug: String!): Project
+  projects(input: ProjectListInput): ProjectListResponse!
+
+  # Listing queries
+  listing(id: ID!): Listing
+  listingBySlug(slug: String!): Listing
+  listings(input: ListingListInput): ListingListResponse!
+  listingStats: ListingStats!
+  myListings(input: ListingListInput): ListingListResponse!
+  featuredListings(limit: Int): [Listing]!
+  nearbyListings(latitude: Float!, longitude: Float!, radiusKm: Float, limit: Int): [Listing]!
+
+  # Lead queries
+  lead(id: ID!): Lead
+  leads(input: LeadListInput): LeadListResponse!
+  myLeadsAsBuyer(input: LeadListInput): LeadListResponse!
+  myLeadsAsOwner(input: LeadListInput): LeadListResponse!
+
+  # Review queries
+  review(id: ID!): Review
+  reviews(input: ReviewListInput): ReviewListResponse!
+  userReviews(userId: ID!, input: ReviewListInput): ReviewListResponse!
+
+  # Amenity queries
+  amenity(id: ID!): Amenity
+  amenities(category: AmenityCategory): [Amenity]!
+
+  # Subscription queries
+  subscription(id: ID!): Subscription
+  userSubscriptions(userId: ID!): [Subscription]!
+  activeSubscription(userId: ID!): Subscription
+
+  # ImageKit queries
+  imageKitAuthParams: ImageKitAuthParams!
+  imageKitFiles(path: String, limit: Int): [ImageKitFile]!
+}
