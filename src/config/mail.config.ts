@@ -1,5 +1,11 @@
+import dns from "node:dns";
 import nodemailer from "nodemailer";
 import { env } from "@/config/env.config";
+
+// Prefer IPv4 for SMTP (avoids ENETUNREACH on Render where IPv6 to Gmail is often unreachable)
+if (dns.setDefaultResultOrder) {
+	dns.setDefaultResultOrder("ipv4first");
+}
 
 // Create generic SMTP transporter (Gmail, SendGrid, etc.)
 // Use longer timeouts on cloud (e.g. Render) where Gmail SMTP may be slow or blocked
