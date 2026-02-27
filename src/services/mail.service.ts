@@ -1,9 +1,10 @@
+import { Resend } from "resend";
 import transporter from "@/config/mail.config";
 import { env } from "@/config/env.config";
-import { 
-	otpTemplate, OtpTemplateData, 
+import {
+	otpTemplate, OtpTemplateData,
 	welcomeTemplate, WelcomeTemplateData,
-	passwordResetTemplate, PasswordResetTemplateData 
+	passwordResetTemplate, PasswordResetTemplateData
 } from "@/templates/index"
 
 export interface SendMailOptions {
@@ -14,35 +15,57 @@ export interface SendMailOptions {
 }
 
 class MailService {
-	private from: string;
+	private smtpFrom: string;
+	private resend: Resend | null = null;
 
 	constructor() {
-		this.from = `"${env.MAIL_FROM_NAME}" <${env.SMTP_USER}>`;
+		this.smtpFrom = `"${env.MAIL_FROM_NAME}" <${env.SMTP_USER || "noreply@localhost"}>`;
+		if (env.RESEND_API_KEY) {
+			this.resend = new Resend(env.RESEND_API_KEY);
+		}
+	}
+
+	private get resendFrom(): string {
+		return `${env.MAIL_FROM_NAME} <${env.RESEND_FROM}>`;
 	}
 
 	/**
-	 * Send a generic email
+	 * Send a generic email (via Resend if RESEND_API_KEY is set, otherwise SMTP)
 	 */
 	async send(options: SendMailOptions): Promise<{ success: boolean; id?: string; error?: string }> {
+		const to = Array.isArray(options.to) ? options.to : [options.to];
 		try {
-			if (!env.SMTP_USER || !env.SMTP_PASS) {
-				console.warn("SMTP credentials not configured, skipping email send");
-				return { success: false, error: "SMTP not configured" };
+			if (this.resend) {
+				const { data, error } = await this.resend.emails.send({
+					from: this.resendFrom,
+					to,
+					subject: options.subject,
+					html: options.html,
+					text: options.text,
+				});
+				if (error) {
+					console.error("Resend send failed:", error);
+					return { success: false, error: error.message };
+				}
+				console.log("Email sent via Resend:", data?.id);
+				return { success: true, id: data?.id };
 			}
-
-			const info = await transporter.sendMail({
-				from: this.from,
-				to: options.to,
-				subject: options.subject,
-				html: options.html,
-				text: options.text,
-			});
-
-			console.log(`Email sent: ${info.messageId}`);
-			return { success: true, id: info.messageId };
+			if (env.SMTP_USER && env.SMTP_PASS) {
+				const info = await transporter.sendMail({
+					from: this.smtpFrom,
+					to: options.to,
+					subject: options.subject,
+					html: options.html,
+					text: options.text,
+				});
+				console.log(`Email sent (SMTP): ${info.messageId}`);
+				return { success: true, id: info.messageId };
+			}
+			console.warn("Mail not configured: set RESEND_API_KEY or SMTP_USER/SMTP_PASS");
+			return { success: false, error: "Mail not configured. Set RESEND_API_KEY or SMTP credentials." };
 		} catch (error: any) {
 			console.error("Failed to send email:", error);
-			return { success: false, error: error.message };
+			return { success: false, error: error?.message ?? String(error) };
 		}
 	}
 

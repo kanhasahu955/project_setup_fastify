@@ -24,10 +24,12 @@ interface EnvConfig {
 	JWT_EXPIRES_IN: string;
 	USE_HTTPS: boolean;
 	API_URL: string;
-	// Mail Configuration (Gmail)
+	// Mail Configuration (Gmail SMTP or Resend)
 	SMTP_USER: string;
 	SMTP_PASS: string;
 	MAIL_FROM_NAME: string;
+	RESEND_API_KEY: string;
+	RESEND_FROM: string;
 	// Firebase Configuration
 	FIREBASE_PROJECT_ID: string;
 	FIREBASE_CLIENT_EMAIL: string;
@@ -58,10 +60,12 @@ class Environment implements EnvConfig {
 	public readonly JWT_EXPIRES_IN: string;
 	public readonly USE_HTTPS: boolean;
 	public readonly API_URL: string;
-	// Mail Configuration (Gmail)
+	// Mail Configuration (Gmail SMTP or Resend)
 	public readonly SMTP_USER: string;
 	public readonly SMTP_PASS: string;
 	public readonly MAIL_FROM_NAME: string;
+	public readonly RESEND_API_KEY: string;
+	public readonly RESEND_FROM: string;
 	// Firebase Configuration
 	public readonly FIREBASE_PROJECT_ID: string;
 	public readonly FIREBASE_CLIENT_EMAIL: string;
@@ -108,10 +112,12 @@ class Environment implements EnvConfig {
 		this.USE_HTTPS = this.getBoolean("USE_HTTPS", false);
 		// Render provides RENDER_EXTERNAL_URL automatically
 		this.API_URL = this.getString("API_URL", process.env.RENDER_EXTERNAL_URL || "");
-		// Mail Configuration (Gmail)
+		// Mail Configuration (Gmail SMTP or Resend – use either for OTP emails)
 		this.SMTP_USER = this.getString("SMTP_USER", "");
 		this.SMTP_PASS = this.getString("SMTP_PASS", "");
 		this.MAIL_FROM_NAME = this.getString("MAIL_FROM_NAME", "Live Bhoomi");
+		this.RESEND_API_KEY = this.getString("RESEND_API_KEY", "");
+		this.RESEND_FROM = this.getString("RESEND_FROM", "onboarding@resend.dev");
 		// Firebase Configuration
 		this.FIREBASE_PROJECT_ID = this.getString("FIREBASE_PROJECT_ID", "");
 		this.FIREBASE_CLIENT_EMAIL = this.getString("FIREBASE_CLIENT_EMAIL", "");

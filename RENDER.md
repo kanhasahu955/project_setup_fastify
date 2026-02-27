@@ -2,7 +2,19 @@
 
 ## "Failed to send verification email" (400)
 
-Registration and resend-OTP send emails via **Gmail SMTP**. On Render you must set these **Environment Variables** in the dashboard (Dashboard → your Web Service → Environment):
+Registration and resend-OTP send emails. You can use **either Resend or Gmail SMTP**. Set the env vars in Dashboard → your Web Service → Environment.
+
+### Option A: Resend (recommended on Render)
+
+| Variable        | Description | Example |
+|----------------|-------------|---------|
+| `RESEND_API_KEY` | API key from [resend.com](https://resend.com) | `re_...` |
+| `RESEND_FROM`  | Sender email (default: `onboarding@resend.dev` for testing) | `onboarding@resend.dev` or your verified domain |
+| `MAIL_FROM_NAME` | Sender display name (optional) | `Live Bhoomi` |
+
+Get an API key at [resend.com](https://resend.com). For production you can verify your domain and set `RESEND_FROM` to e.g. `noreply@yourdomain.com`.
+
+### Option B: Gmail SMTP
 
 | Variable        | Description | Example |
 |----------------|-------------|---------|
@@ -10,13 +22,11 @@ Registration and resend-OTP send emails via **Gmail SMTP**. On Render you must s
 | `SMTP_PASS`    | Gmail **App Password** (not your normal password) | 16-char app password |
 | `MAIL_FROM_NAME` | Sender display name (optional) | `Live Bhoomi` |
 
-**Gmail setup:**
+1. Enable 2-Step Verification: [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Create an **App Password**: Google Account → Security → 2-Step Verification → App passwords → generate for "Mail".
+3. Set `SMTP_USER` and `SMTP_PASS` on Render.
 
-1. Enable 2-Step Verification on the Google account: [myaccount.google.com/security](https://myaccount.google.com/security).
-2. Create an **App Password**: Google Account → Security → 2-Step Verification → App passwords → generate one for "Mail".
-3. Set `SMTP_USER` to that Gmail address and `SMTP_PASS` to the 16-character app password (no spaces).
-
-If these are missing or wrong, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the real cause (e.g. `[auth] Register: email send failed: SMTP not configured` or the nodemailer error).
+If **neither** Resend nor SMTP is configured, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact error (e.g. "Mail not configured" or Resend/SMTP error).
 
 ---
 

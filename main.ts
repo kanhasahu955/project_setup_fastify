@@ -147,13 +147,16 @@ class Application {
         await this.app.listen({ port: this.port, host: this.host });
 
         const protocol = this.useHttps ? 'https' : 'http';
+        // Prefer external URL (API_URL or Render's RENDER_EXTERNAL_URL) in logs so Render shows correct links
+        const baseUrl = env.API_URL || `${protocol}://localhost:${this.port}`;
+
         this.app.log.info(`
             🚀 Server is running!
             🔒 HTTPS: ${this.useHttps ? 'Enabled' : 'Disabled'}
-            📝 REST API Docs: ${protocol}://localhost:${this.port}/documentation
-            🔷 GraphQL: ${protocol}://localhost:${this.port}/graphql
-            🔷 GraphiQL: ${protocol}://localhost:${this.port}/graphiql
-            🏥 Health Check: ${protocol}://localhost:${this.port}/api/v1/health
+            📝 REST API Docs: ${baseUrl}/documentation
+            🔷 GraphQL: ${baseUrl}/graphql
+            🔷 GraphiQL: ${baseUrl}/graphiql
+            🏥 Health Check: ${baseUrl}/api/v1/health
             🔌 Socket.IO: same host (use for live updates & chat)
             🌍 Environment: ${env.NODE_ENV}
         `);
