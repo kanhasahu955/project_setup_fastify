@@ -147,6 +147,8 @@ model User {
   projects          Project[]
   listingFavorites  ListingFavorite[]
   listingLikes      ListingLike[]
+  listingComments   ListingComment[]
+  listingReviews    ListingReview[]
 
   leadsAsBuyer Lead[] @relation("BuyerLeads")
   leadsAsOwner Lead[] @relation("OwnerLeads")
@@ -273,9 +275,40 @@ model Listing {
   leads           Lead[]
   favorites       ListingFavorite[]
   likes           ListingLike[]
+  comments        ListingComment[]
+  reviews         ListingReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ListingReview {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String   @db.ObjectId
+  userId    String   @db.ObjectId
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+model ListingComment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String   @db.ObjectId
+  userId    String   @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
 }
 
 model ListingFavorite {

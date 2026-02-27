@@ -43,6 +43,13 @@ type Mutation {
   verifyListing(id: ID!): Listing!
   incrementListingViews(id: ID!): Listing!
   incrementListingClicks(id: ID!): Listing!
+  addListingFavorite(listingId: ID!): SuccessResponse!
+  removeListingFavorite(listingId: ID!): SuccessResponse!
+  createListingComment(listingId: ID!, content: String!): ListingComment!
+  deleteListingComment(id: ID!): SuccessResponse!
+  createListingReview(listingId: ID!, rating: Int!, comment: String): ListingReview!
+  updateListingReview(id: ID!, rating: Int!, comment: String): ListingReview!
+  deleteListingReview(id: ID!): SuccessResponse!
 
   # Listing images
   addListingImage(listingId: ID!, input: ListingImageInput!): ListingImage!

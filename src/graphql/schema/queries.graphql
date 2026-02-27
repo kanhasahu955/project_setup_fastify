@@ -36,6 +36,10 @@ type Query {
   myListings(input: ListingListInput): ListingListResponse!
   featuredListings(limit: Int): [Listing]!
   nearbyListings(latitude: Float!, longitude: Float!, radiusKm: Float, limit: Int): [Listing]!
+  listingComments(listingId: ID!): [ListingComment]!
+  listingReviews(listingId: ID!): [ListingReview]!
+  "Current user's favorited listing IDs (requires auth)"
+  myFavoriteListingIds: [ID!]!
 
   # Lead queries
   lead(id: ID!): Lead

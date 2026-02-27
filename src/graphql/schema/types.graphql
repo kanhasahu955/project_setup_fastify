@@ -312,10 +312,42 @@ type Listing {
   images: [ListingImage]
   amenities: [AmenityOnListing]
   leads: [Lead]
+  "Total favorites count (optional, may require listing id in context)"
+  favoritesCount: Int
+  "True if current user has favorited this listing (requires auth)"
+  isFavoritedByMe: Boolean
+  "Average rating 1-5 (from listing reviews)"
+  averageRating: Float
+  "Total number of ratings"
+  totalRatings: Int
+  "True if current user has rated this listing (requires auth)"
+  isRatedByMe: Boolean
+  "Current user's rating 1-5 if set (requires auth)"
+  myRating: Int
   createdAt: String!
   updatedAt: String!
   "Distance in km (only for nearbyListings)"
   distanceKm: Float
+}
+
+type ListingReview {
+  id: ID!
+  listingId: ID!
+  userId: ID!
+  rating: Int!
+  comment: String
+  user: User
+  createdAt: String!
+  updatedAt: String!
+}
+
+type ListingComment {
+  id: ID!
+  listingId: ID!
+  userId: ID!
+  content: String!
+  user: User
+  createdAt: String!
 }
 
 "User last reported location (live tracking)"

@@ -284,6 +284,31 @@ export const resolvers = {
             return result.data;
         },
 
+        listingComments: async (_: unknown, { listingId }: { listingId: string }) => {
+            return prisma.listingComment.findMany({
+                where: { listingId },
+                include: { user: true },
+                orderBy: { createdAt: "asc" },
+            });
+        },
+
+        listingReviews: async (_: unknown, { listingId }: { listingId: string }) => {
+            return prisma.listingReview.findMany({
+                where: { listingId },
+                include: { user: true },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+
+        myFavoriteListingIds: async (_: unknown, __: unknown, context: Context) => {
+            if (!context.user?.id) return [];
+            const favs = await prisma.listingFavorite.findMany({
+                where: { userId: context.user.id },
+                select: { listingId: true },
+            });
+            return favs.map((f) => f.listingId);
+        },
+
         // ============================================
         // LEAD QUERIES
         // ============================================
@@ -678,6 +703,90 @@ export const resolvers = {
             });
         },
 
+        addListingFavorite: async (_: unknown, { listingId }: { listingId: string }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            await prisma.listingFavorite.upsert({
+                where: {
+                    userId_listingId: { userId: context.user.id, listingId },
+                },
+                create: { userId: context.user.id, listingId },
+                update: {},
+            });
+            return { success: true, message: "Added to favorites" };
+        },
+
+        removeListingFavorite: async (_: unknown, { listingId }: { listingId: string }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            await prisma.listingFavorite.deleteMany({
+                where: { userId: context.user.id, listingId },
+            });
+            return { success: true, message: "Removed from favorites" };
+        },
+
+        createListingComment: async (
+            _: unknown,
+            { listingId, content }: { listingId: string; content: string },
+            context: Context
+        ) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            return prisma.listingComment.create({
+                data: { listingId, userId: context.user.id, content: content.trim() },
+                include: { user: true },
+            });
+        },
+
+        deleteListingComment: async (_: unknown, { id }: { id: string }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            const comment = await prisma.listingComment.findUnique({ where: { id } });
+            if (!comment) throw new Error("Comment not found");
+            if (comment.userId !== context.user.id) throw new Error("Not authorized to delete this comment");
+            await prisma.listingComment.delete({ where: { id } });
+            return { success: true, message: "Comment deleted" };
+        },
+
+        createListingReview: async (
+            _: unknown,
+            { listingId, rating, comment }: { listingId: string; rating: number; comment?: string | null },
+            context: Context
+        ) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            if (rating < 1 || rating > 5) throw new Error("Rating must be between 1 and 5");
+            return prisma.listingReview.upsert({
+                where: {
+                    userId_listingId: { userId: context.user.id, listingId },
+                },
+                create: { listingId, userId: context.user.id, rating, comment: comment?.trim() ?? null },
+                update: { rating, comment: comment?.trim() ?? null, updatedAt: new Date() },
+                include: { user: true },
+            });
+        },
+
+        updateListingReview: async (
+            _: unknown,
+            { id, rating, comment }: { id: string; rating: number; comment?: string | null },
+            context: Context
+        ) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            if (rating < 1 || rating > 5) throw new Error("Rating must be between 1 and 5");
+            const review = await prisma.listingReview.findUnique({ where: { id } });
+            if (!review) throw new Error("Review not found");
+            if (review.userId !== context.user.id) throw new Error("Not authorized to update this review");
+            return prisma.listingReview.update({
+                where: { id },
+                data: { rating, comment: comment?.trim() ?? null },
+                include: { user: true },
+            });
+        },
+
+        deleteListingReview: async (_: unknown, { id }: { id: string }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            const review = await prisma.listingReview.findUnique({ where: { id } });
+            if (!review) throw new Error("Review not found");
+            if (review.userId !== context.user.id) throw new Error("Not authorized to delete this review");
+            await prisma.listingReview.delete({ where: { id } });
+            return { success: true, message: "Review deleted" };
+        },
+
         addListingImage: async (_: unknown, { listingId, input }: { listingId: string; input: any }) => {
             const maxOrder = await prisma.listingImage.findFirst({
                 where: { listingId },
@@ -941,6 +1050,62 @@ export const resolvers = {
         leads: async (parent: any) => {
             if (parent.leads) return parent.leads;
             return prisma.lead.findMany({ where: { listingId: parent.id } });
+        },
+        favoritesCount: async (parent: any) => {
+            if (parent.favoritesCount != null) return parent.favoritesCount;
+            return prisma.listingFavorite.count({ where: { listingId: parent.id } });
+        },
+        isFavoritedByMe: async (parent: any, _args: unknown, context: Context) => {
+            if (!context.user?.id) return false;
+            const fav = await prisma.listingFavorite.findUnique({
+                where: {
+                    userId_listingId: { userId: context.user.id, listingId: parent.id },
+                },
+            });
+            return !!fav;
+        },
+        averageRating: async (parent: any) => {
+            const agg = await prisma.listingReview.aggregate({
+                where: { listingId: parent.id },
+                _avg: { rating: true },
+                _count: { id: true },
+            });
+            return agg._count.id === 0 ? null : agg._avg.rating ?? null;
+        },
+        totalRatings: async (parent: any) => {
+            return prisma.listingReview.count({ where: { listingId: parent.id } });
+        },
+        isRatedByMe: async (parent: any, _args: unknown, context: Context) => {
+            if (!context.user?.id) return false;
+            const review = await prisma.listingReview.findUnique({
+                where: {
+                    userId_listingId: { userId: context.user.id, listingId: parent.id },
+                },
+            });
+            return !!review;
+        },
+        myRating: async (parent: any, _args: unknown, context: Context) => {
+            if (!context.user?.id) return null;
+            const review = await prisma.listingReview.findUnique({
+                where: {
+                    userId_listingId: { userId: context.user.id, listingId: parent.id },
+                },
+            });
+            return review?.rating ?? null;
+        },
+    },
+
+    ListingReview: {
+        user: async (parent: any) => {
+            if (parent.user) return parent.user;
+            return prisma.user.findUnique({ where: { id: parent.userId } });
+        },
+    },
+
+    ListingComment: {
+        user: async (parent: any) => {
+            if (parent.user) return parent.user;
+            return prisma.user.findUnique({ where: { id: parent.userId } });
         },
     },
 
