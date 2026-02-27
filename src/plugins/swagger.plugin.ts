@@ -52,6 +52,9 @@ export async function registerSwagger(app: FastifyInstance) {
                 url: 'https://github.com/yourusername/live_bhoomi',
                 description: 'Find more information here'
             },
+            // IMPORTANT: Do NOT append `/api/v1` here.
+            // All routes are already defined with `/api/v1` in their path,
+            // so the server URL must be just the origin (host + protocol).
             servers: (() => {
                 const productionUrl = env.API_URL || process.env.RENDER_EXTERNAL_URL || 'https://live-bhoomi.onrender.com';
                 return [
@@ -290,11 +293,11 @@ export async function registerSwagger(app: FastifyInstance) {
         },
         staticCSP: false,
         transformSpecification: (swaggerObject: any, request: any, _reply: any) => {
-            // Use request origin + /api/v1 so "Try it out" calls real routes in all envs
+            // Use request origin only; paths already include `/api/v1`
             const host = request?.headers?.host;
             const proto = request?.headers?.['x-forwarded-proto'] || (request?.protocol === 'https' ? 'https' : 'http');
             if (host) {
-                const baseUrl = `${proto}://${host}/api/v1`;
+                const baseUrl = `${proto}://${host}`;
                 swaggerObject.servers = [{ url: baseUrl, description: 'This server' }];
             }
             // Transform isFile properties to proper OpenAPI 3.0 binary format
