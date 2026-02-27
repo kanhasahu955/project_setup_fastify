@@ -45,11 +45,7 @@ services:
         value: 1d
       - key: USE_HTTPS
         value: "false"
-      # Mail: use Resend (recommended on Render) or Gmail SMTP
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM
-        value: "onboarding@resend.dev"
+      # Mail (Gmail SMTP)
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS

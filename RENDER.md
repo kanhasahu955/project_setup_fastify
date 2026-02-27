@@ -2,19 +2,7 @@
 
 ## "Failed to send verification email" (400)
 
-Registration and resend-OTP send emails. You can use **either Resend or Gmail SMTP**. Set the env vars in Dashboard → your Web Service → Environment.
-
-### Option A: Resend (recommended on Render)
-
-| Variable        | Description | Example |
-|----------------|-------------|---------|
-| `RESEND_API_KEY` | API key from [resend.com](https://resend.com) | `re_...` |
-| `RESEND_FROM`  | Sender email (default: `onboarding@resend.dev` for testing) | `onboarding@resend.dev` or your verified domain |
-| `MAIL_FROM_NAME` | Sender display name (optional) | `Live Bhoomi` |
-
-Get an API key at [resend.com](https://resend.com). For production you can verify your domain and set `RESEND_FROM` to e.g. `noreply@yourdomain.com`.
-
-### Option B: Gmail SMTP
+Registration and resend-OTP send emails via **Gmail SMTP**. On Render you must set these **Environment Variables** in the dashboard (Dashboard → your Web Service → Environment):
 
 | Variable        | Description | Example |
 |----------------|-------------|---------|
@@ -26,7 +14,7 @@ Get an API key at [resend.com](https://resend.com). For production you can verif
 2. Create an **App Password**: Google Account → Security → 2-Step Verification → App passwords → generate for "Mail".
 3. Set `SMTP_USER` and `SMTP_PASS` on Render.
 
-If **neither** Resend nor SMTP is configured, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact error (e.g. "Mail not configured" or Resend/SMTP error).
+If these are missing or wrong, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact error (e.g. "Mail not configured" or nodemailer error).
 
 ---
 

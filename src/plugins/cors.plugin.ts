@@ -9,16 +9,17 @@ import { env } from '@/config/env.config'
 export async function registerSecurity(app: FastifyInstance) {
     const isProd = env.NODE_ENV === 'production'
 
+    const normalizeOrigin = (o: string) => (o || "").trim().replace(/\/+$/, "");
+    const frontendUrls = Array.isArray(env.FRONTEND_URL) ? env.FRONTEND_URL : [env.FRONTEND_URL];
     const allowedOrigins = [
-        ...(Array.isArray(env.FRONTEND_URL) ? env.FRONTEND_URL : [env.FRONTEND_URL]),
+        ...frontendUrls.map(normalizeOrigin).filter(Boolean),
         `http://localhost:${env.PORT}`,
         `http://127.0.0.1:${env.PORT}`,
         `https://localhost:${env.PORT}`,
         `https://127.0.0.1:${env.PORT}`,
-        // Add API URL for Swagger in production (Render provides this)
-        ...(env.API_URL ? [env.API_URL] : []),
-        ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : [])
-    ];
+        ...(env.API_URL ? [normalizeOrigin(env.API_URL)] : []),
+        ...(process.env.RENDER_EXTERNAL_URL ? [normalizeOrigin(process.env.RENDER_EXTERNAL_URL)] : []),
+    ].filter(Boolean);
 
     await app.register(fastifyHelmet, {
         contentSecurityPolicy: isProd
@@ -50,7 +51,8 @@ export async function registerSecurity(app: FastifyInstance) {
             if (!origin) return cb(null, true)
             if (!isProd) return cb(null, true)
 
-            if (allowedOrigins.includes(origin)) {
+            const normalized = normalizeOrigin(origin)
+            if (allowedOrigins.some((allowed) => normalizeOrigin(allowed) === normalized)) {
                 return cb(null, true)
             }
 

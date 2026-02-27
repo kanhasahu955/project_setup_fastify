@@ -187,8 +187,7 @@ USE_HTTPS=false
 # Redis (optional – leave empty for in-memory cache)
 # REDIS_URL=redis://localhost:6379
 
-# Email Service (Resend)
-RESEND_API_KEY=re_your_api_key_here
+# Email (Gmail SMTP)
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 MAIL_FROM_NAME=Live Bhoomi

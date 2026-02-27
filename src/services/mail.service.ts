@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import transporter from "@/config/mail.config";
 import { env } from "@/config/env.config";
 import {
@@ -16,43 +15,16 @@ export interface SendMailOptions {
 
 class MailService {
 	private smtpFrom: string;
-	private resend: Resend | null = null;
 
 	constructor() {
 		this.smtpFrom = `"${env.MAIL_FROM_NAME}" <${env.SMTP_USER || "noreply@localhost"}>`;
-		if (env.RESEND_API_KEY) {
-			this.resend = new Resend(env.RESEND_API_KEY);
-		}
-	}
-
-	private get resendFrom(): string {
-		return `${env.MAIL_FROM_NAME} <${env.RESEND_FROM}>`;
 	}
 
 	/**
-	 * Send a generic email (via Resend if RESEND_API_KEY is set, falling back to SMTP)
+	 * Send a generic email via SMTP
 	 */
 	async send(options: SendMailOptions): Promise<{ success: boolean; id?: string; error?: string }> {
-		const to = Array.isArray(options.to) ? options.to : [options.to];
 		try {
-			// 1) Try Resend when configured
-			if (this.resend) {
-				const { data, error } = await this.resend.emails.send({
-					from: this.resendFrom,
-					to,
-					subject: options.subject,
-					html: options.html,
-					text: options.text,
-				});
-				if (!error) {
-					console.log("Email sent via Resend:", data?.id);
-					return { success: true, id: data?.id };
-				}
-				// Resend misconfigured or rejected; log and fall back to SMTP if possible
-				console.error("Resend send failed, falling back to SMTP if available:", error);
-			}
-
-			// 2) Fallback: Gmail SMTP
 			if (env.SMTP_USER && env.SMTP_PASS) {
 				const info = await transporter.sendMail({
 					from: this.smtpFrom,
@@ -65,8 +37,8 @@ class MailService {
 				return { success: true, id: info.messageId };
 			}
 
-			console.warn("Mail not configured: set RESEND_API_KEY or SMTP_USER/SMTP_PASS");
-			return { success: false, error: "Mail not configured. Set RESEND_API_KEY or SMTP credentials." };
+			console.warn("Mail not configured: set SMTP_USER and SMTP_PASS");
+			return { success: false, error: "Mail not configured. Set SMTP credentials." };
 		} catch (error: any) {
 			console.error("Failed to send email:", error);
 			return { success: false, error: error?.message ?? String(error) };
