@@ -2,22 +2,29 @@
 
 ## "Failed to send verification email" (400)
 
-Registration and resend-OTP send emails via **SMTP**. Set these env vars in Dashboard → your Web Service → Environment.
+Registration and OTP emails use **Resend** if `RESEND_API_KEY` is set, otherwise **SMTP**. Set env vars in Dashboard → your Web Service → Environment.
+
+### Resend (recommended – same as local)
 
 | Variable          | Description | Example |
 |-------------------|-------------|---------|
-| `SMTP_HOST`       | SMTP host (optional; default Gmail) | `smtp.gmail.com` |
-| `SMTP_PORT`       | SMTP port (optional; default 587) | `587` |
-| `SMTP_USER`       | SMTP login (e.g. Gmail address) | `yourapp@gmail.com` |
-| `SMTP_PASS`       | SMTP password (Gmail: use **App Password**) | 16-char app password |
+| `RESEND_API_KEY`  | API key from [resend.com](https://resend.com) | `re_xxxx` |
+| `RESEND_FROM`     | Sender email (testing: `onboarding@resend.dev`; production: verified domain) | `onboarding@resend.dev` or `noreply@yourdomain.com` |
 | `MAIL_FROM_NAME`  | Sender display name | `Live Bhoomi` |
-| `MAIL_FROM_EMAIL` | From address (optional; defaults to SMTP_USER) | `yourapp@gmail.com` |
 
-**Gmail:** Enable 2-Step Verification, then create an **App Password** (Google Account → Security → App passwords). Set `SMTP_USER` to your Gmail and `SMTP_PASS` to that app password. Omit `SMTP_HOST`/`SMTP_PORT` to use Gmail defaults.
+Use the **same** `RESEND_API_KEY` and `RESEND_FROM` as in your local `.env` so production matches local.
 
-**To match local:** Set the same values as in your local `.env`: `SMTP_USER` (Gmail), `SMTP_PASS` (Gmail App Password), and optionally `MAIL_FROM_EMAIL` (same as SMTP_USER). `SMTP_HOST`/`SMTP_PORT` in the blueprint default to Gmail.
+### SMTP fallback (if RESEND_API_KEY not set)
 
-If SMTP vars are missing or wrong, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact nodemailer error.
+| Variable          | Description |
+|-------------------|-------------|
+| `SMTP_HOST`       | e.g. `smtp.gmail.com` |
+| `SMTP_PORT`       | e.g. `587` |
+| `SMTP_USER`       | SMTP login |
+| `SMTP_PASS`       | SMTP password (Gmail: App Password) |
+| `MAIL_FROM_EMAIL` | From address |
+
+If mail is not configured, the API returns 400. Check **Render Logs** for the exact error.
 
 ### "Connection timeout" (ETIMEDOUT) on Render
 

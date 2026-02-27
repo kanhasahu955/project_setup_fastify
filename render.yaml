@@ -46,7 +46,14 @@ services:
         value: 1d
       - key: USE_HTTPS
         value: "false"
-      # Mail – set same as local .env for Gmail SMTP (same behaviour as local)
+      # Mail – Resend (same as local: set RESEND_API_KEY + RESEND_FROM)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: "onboarding@resend.dev"
+      - key: MAIL_FROM_NAME
+        value: "Live Bhoomi"
+      # SMTP fallback (if RESEND_API_KEY not set)
       - key: SMTP_HOST
         value: "smtp.gmail.com"
       - key: SMTP_PORT
@@ -55,8 +62,6 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
-      - key: MAIL_FROM_NAME
-        value: "Live Bhoomi"
       - key: MAIL_FROM_EMAIL
         sync: false
       # ImageKit configuration (match .env keys)

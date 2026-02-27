@@ -1,4 +1,5 @@
 import prisma from "@/config/prisma.config";
+import { env } from "@/config/env.config";
 import { cleanObject } from "@/utils/lodash.util";
 import type { PaginatedResult } from "@/types/common.types";
 import type { CreateListingInput, UpdateListingInput, ListingListOptions, SafeListing } from "@/types/listing.types";
@@ -41,35 +42,90 @@ class ListingService {
     };
 
     async list(options: ListingListOptions = {}): Promise<PaginatedResult<SafeListing>> {
-        const page = options.page && options.page > 0 ? options.page : 1;
-        const limit = options.limit && options.limit > 0 ? options.limit : 10;
+        const opts = options ?? {};
+        const page = opts.page && opts.page > 0 ? opts.page : 1;
+        const limit = opts.limit && opts.limit > 0 ? opts.limit : 10;
         const skip = (page - 1) * limit;
+        const sortBy = opts.sortBy || "createdAt";
+        const sortOrder = opts.sortOrder || "desc";
 
+        // Only add optional filters when explicitly set (avoid empty string / undefined excluding rows)
         const where: any = { deletedAt: null };
-
-        if (options.search) {
+        if (opts.search != null && opts.search !== "") {
             where.OR = [
-                { title: { contains: options.search, mode: "insensitive" } },
-                { city: { contains: options.search, mode: "insensitive" } },
-                { locality: { contains: options.search, mode: "insensitive" } },
+                { title: { contains: opts.search, mode: "insensitive" } },
+                { city: { contains: opts.search, mode: "insensitive" } },
+                { locality: { contains: opts.search, mode: "insensitive" } },
             ];
         }
-        if (options.city) where.city = options.city;
-        if (options.locality) where.locality = options.locality;
-        if (options.listingType) where.listingType = options.listingType;
-        if (options.propertyType) where.propertyType = options.propertyType;
-        if (options.status) where.status = options.status;
-        if (options.minPrice != null) where.price = { ...(where.price || {}), gte: options.minPrice };
-        if (options.maxPrice != null) where.price = { ...(where.price || {}), lte: options.maxPrice };
-        if (options.bedrooms != null) where.bedrooms = options.bedrooms;
-        if (options.ownerId) where.ownerId = options.ownerId;
-        if (options.projectId) where.projectId = options.projectId;
-        if (options.isFeatured != null) where.isFeatured = options.isFeatured;
-        if (options.isVerified != null) where.isVerified = options.isVerified;
+        if (opts.city != null && opts.city !== "") where.city = opts.city;
+        if (opts.locality != null && opts.locality !== "") where.locality = opts.locality;
+        if (opts.listingType != null) where.listingType = opts.listingType;
+        if (opts.propertyType != null) where.propertyType = opts.propertyType;
+        if (opts.status != null) where.status = opts.status;
+        if (opts.minPrice != null) where.price = { ...(where.price || {}), gte: opts.minPrice };
+        if (opts.maxPrice != null) where.price = { ...(where.price || {}), lte: opts.maxPrice };
+        if (opts.bedrooms != null) where.bedrooms = opts.bedrooms;
+        if (opts.ownerId != null && opts.ownerId !== "") where.ownerId = opts.ownerId;
+        if (opts.projectId != null && opts.projectId !== "") where.projectId = opts.projectId;
+        if (opts.isFeatured != null) where.isFeatured = opts.isFeatured;
+        if (opts.isVerified != null) where.isVerified = opts.isVerified;
 
-        const orderBy: any = {
-            [options.sortBy || "createdAt"]: options.sortOrder || "desc",
-        };
+        const orderBy: any = { [sortBy]: sortOrder };
+
+        // MongoDB: { deletedAt: null } does not match documents where the field is missing.
+        // Use raw aggregation to match "deletedAt is null OR deletedAt does not exist", then load full docs.
+        // Skip raw path when search is used (where.OR uses Prisma filter shape, not MongoDB).
+        if (env.DATABASE_TYPE === "mongodb" && !where.OR) {
+            const deletedOr = { $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }] };
+            const clauses: object[] = [deletedOr];
+            if (where.city != null) clauses.push({ city: where.city });
+            if (where.locality != null) clauses.push({ locality: where.locality });
+            if (where.listingType != null) clauses.push({ listingType: where.listingType });
+            if (where.propertyType != null) clauses.push({ propertyType: where.propertyType });
+            if (where.status != null) clauses.push({ status: where.status });
+            if (where.ownerId != null) clauses.push({ ownerId: where.ownerId });
+            if (where.projectId != null) clauses.push({ projectId: where.projectId });
+            if (where.bedrooms != null) clauses.push({ bedrooms: where.bedrooms });
+            if (where.isFeatured != null) clauses.push({ isFeatured: where.isFeatured });
+            if (where.isVerified != null) clauses.push({ isVerified: where.isVerified });
+            if (where.price && (where.price.gte != null || where.price.lte != null)) {
+                const priceCond: Record<string, number> = {};
+                if (where.price.gte != null) priceCond.$gte = where.price.gte;
+                if (where.price.lte != null) priceCond.$lte = where.price.lte;
+                clauses.push({ price: priceCond });
+            }
+            const mongoMatch = clauses.length === 1 ? deletedOr : { $and: clauses };
+            const sortDir = sortOrder === "asc" ? 1 : -1;
+            const pipeline: object[] = [
+                { $match: mongoMatch },
+                { $sort: { [sortBy]: sortDir } },
+                { $skip: skip },
+                { $limit: limit },
+                { $project: { _id: 1 } },
+            ];
+            const rawResult = (await prisma.listing.aggregateRaw({ pipeline })) as { _id: { $oid: string } }[] | unknown;
+            const list = Array.isArray(rawResult) ? rawResult : [];
+            const ids = list.map((d) => (d as { _id: { $oid: string } })._id?.$oid ?? (d as any)._id?.toString()).filter(Boolean);
+            if (ids.length === 0) {
+                const countResult = (await prisma.listing.aggregateRaw({
+                    pipeline: [{ $match: mongoMatch }, { $count: "n" }],
+                })) as { n: number }[];
+                const total = countResult[0]?.n ?? 0;
+                return { data: [], meta: buildPagination(total, page, limit) };
+            }
+            const rows = await prisma.listing.findMany({
+                where: { id: { in: ids } },
+                include: this.baseInclude,
+            });
+            const orderMap = new Map(ids.map((id, i) => [id, i]));
+            (rows as SafeListing[]).sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+            const countResult = (await prisma.listing.aggregateRaw({
+                pipeline: [{ $match: mongoMatch }, { $count: "n" }],
+            })) as { n: number }[];
+            const total = countResult[0]?.n ?? 0;
+            return { data: rows as SafeListing[], meta: buildPagination(total, page, limit) };
+        }
 
         const [data, total] = await Promise.all([
             prisma.listing.findMany({
@@ -89,8 +145,19 @@ class ListingService {
     }
 
     async findById(id: string): Promise<SafeListing | null> {
+        if (env.DATABASE_TYPE === "mongodb") {
+            // MongoDB: deletedAt: null doesn't match documents where the field is missing
+            const listing = await prisma.listing.findFirst({
+                where: { id },
+                include: this.baseInclude,
+            });
+            if (!listing) return null;
+            const deletedAt = (listing as any).deletedAt;
+            if (deletedAt instanceof Date) return null;
+            return listing as SafeListing | null;
+        }
         const listing = await prisma.listing.findFirst({
-            where: { id, deletedAt: null as any },
+            where: { id, deletedAt: null },
             include: this.baseInclude,
         });
         return listing as SafeListing | null;
@@ -106,6 +173,7 @@ class ListingService {
                 ownerId,
                 status: "DRAFT",
             },
+            include: this.baseInclude,
         });
 
         if (images?.length) {
@@ -128,7 +196,13 @@ class ListingService {
             });
         }
 
-        return (await this.findById(listing.id)) as SafeListing;
+        // Return the created listing with relations (from create include). If we need fresh images/amenities, refetch.
+        if (images?.length || amenityIds?.length) {
+            const fresh = await this.findById(listing.id);
+            if (!fresh) throw new Error("Listing was created but could not be retrieved");
+            return fresh as SafeListing;
+        }
+        return listing as SafeListing;
     }
 
     async update(id: string, input: UpdateListingInput): Promise<SafeListing> {

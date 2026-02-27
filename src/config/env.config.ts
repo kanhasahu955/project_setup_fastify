@@ -24,7 +24,9 @@ interface EnvConfig {
 	JWT_EXPIRES_IN: string;
 	USE_HTTPS: boolean;
 	API_URL: string;
-	// Mail Configuration (SMTP – Gmail, SendGrid, etc.)
+	// Mail: Resend (preferred) or SMTP
+	RESEND_API_KEY: string;
+	RESEND_FROM: string;
 	SMTP_USER: string;
 	SMTP_PASS: string;
 	SMTP_HOST: string;
@@ -61,7 +63,9 @@ class Environment implements EnvConfig {
 	public readonly JWT_EXPIRES_IN: string;
 	public readonly USE_HTTPS: boolean;
 	public readonly API_URL: string;
-	// Mail Configuration (SMTP – Gmail, SendGrid, etc.)
+	// Mail: Resend (preferred) or SMTP
+	public readonly RESEND_API_KEY: string;
+	public readonly RESEND_FROM: string;
 	public readonly SMTP_USER: string;
 	public readonly SMTP_PASS: string;
 	public readonly SMTP_HOST: string;
@@ -114,7 +118,9 @@ class Environment implements EnvConfig {
 		this.USE_HTTPS = this.getBoolean("USE_HTTPS", false);
 		// Render provides RENDER_EXTERNAL_URL automatically
 		this.API_URL = this.getString("API_URL", process.env.RENDER_EXTERNAL_URL || "");
-		// Mail Configuration (SMTP – works with Gmail, SendGrid, etc.)
+		// Mail: Resend (preferred for local + production) or SMTP fallback
+		this.RESEND_API_KEY = this.getString("RESEND_API_KEY", "");
+		this.RESEND_FROM = this.getString("RESEND_FROM", "onboarding@resend.dev");
 		this.SMTP_USER = this.getString("SMTP_USER", "");
 		this.SMTP_PASS = this.getString("SMTP_PASS", "");
 		this.SMTP_HOST = this.getString("SMTP_HOST", "smtp.gmail.com");

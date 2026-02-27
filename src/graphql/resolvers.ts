@@ -237,7 +237,7 @@ export const resolvers = {
 
         listings: async (_: unknown, { input }: { input?: any }) => {
             try {
-                const result = await listingService.list(input);
+                const result = await listingService.list(input ?? {});
                 return { data: result.data, pagination: result.meta };
             } catch (e) {
                 throw new Error(getPrismaErrorMessage(e, "Failed to list listings"));
@@ -607,7 +607,8 @@ export const resolvers = {
             if (!context.user?.id) throw new Error("Not authenticated");
             try {
                 return await listingService.create(context.user.id, input);
-            } catch (e) {
+            } catch (e: any) {
+                context.app?.log?.error?.(e, "createListing failed");
                 throw new Error(getPrismaErrorMessage(e, "Failed to create listing"));
             }
         },
