@@ -87,6 +87,60 @@ class UserController {
         }
     }
 
+    async getLocation(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const userId = (request as any).user?.id;
+            if (!userId) {
+                FastifyResponseHelper.unauthorized(reply, "Not authenticated", request);
+                return;
+            }
+            const location = await userService.getLocation(userId);
+            if (!location) {
+                FastifyResponseHelper.notFound(reply, "No location set for user", request);
+                return;
+            }
+            FastifyResponseHelper.ok(reply, location, "Location retrieved", request);
+        } catch (error: any) {
+            FastifyResponseHelper.badRequest(reply, error.message, request);
+        }
+    }
+
+    async updateLocation(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const userId = (request as any).user?.id;
+            if (!userId) {
+                FastifyResponseHelper.unauthorized(reply, "Not authenticated", request);
+                return;
+            }
+            const body = FastifyResponseHelper.body<{ latitude: number; longitude: number; accuracy?: number }>(request);
+            const { latitude, longitude, accuracy } = body;
+            if (typeof latitude !== "number" || typeof longitude !== "number") {
+                FastifyResponseHelper.badRequest(reply, "latitude and longitude are required numbers", request);
+                return;
+            }
+            const location = await userService.updateLocation(userId, { latitude, longitude, accuracy });
+            FastifyResponseHelper.ok(reply, location, "Location updated", request);
+        } catch (error: any) {
+            FastifyResponseHelper.badRequest(reply, error.message, request);
+        }
+    }
+
+    async getLocationHistory(request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const userId = (request as any).user?.id;
+            if (!userId) {
+                FastifyResponseHelper.unauthorized(reply, "Not authenticated", request);
+                return;
+            }
+            const { limit } = FastifyResponseHelper.query<{ limit?: string }>(request);
+            const limitNum = limit != null ? parseInt(limit, 10) : 50;
+            const history = await userService.getLocationHistory(userId, limitNum);
+            FastifyResponseHelper.ok(reply, { history }, "Location history", request);
+        } catch (error: any) {
+            FastifyResponseHelper.badRequest(reply, error.message, request);
+        }
+    }
+
     async update(request: FastifyRequest, reply: FastifyReply) {
         try {
             const { id } = FastifyResponseHelper.params<IdParam>(request);

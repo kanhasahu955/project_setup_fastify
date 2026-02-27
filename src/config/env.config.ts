@@ -39,6 +39,8 @@ interface EnvConfig {
 	IMAGEKIT_URL_ENDPOINT: string;
 	// Redis (optional – for caching)
 	REDIS_URL: string;
+	// Google Maps (Places + Geocoding)
+	GOOGLE_MAPS_API_KEY: string;
 }
 
 class Environment implements EnvConfig {
@@ -71,6 +73,7 @@ class Environment implements EnvConfig {
 	public readonly IMAGEKIT_URL_ENDPOINT: string;
 	// Redis (optional – empty = no Redis, use in-memory fallback)
 	public readonly REDIS_URL: string;
+	public readonly GOOGLE_MAPS_API_KEY: string;
 
 	constructor() {
 		this.PORT = this.getNumber("PORT", 3000);
@@ -78,14 +81,19 @@ class Environment implements EnvConfig {
 		this.NODE_ENV = this.getString("NODE_ENV", "development") as NodeEnv;
 		
 		// Database Configuration
+		// Default database type is MongoDB in all environments; can be overridden via env.
 		this.DATABASE_TYPE = (this.getString("DATABASE_TYPE", "mongodb") as DatabaseType) || "mongodb";
+		// Single primary URL variable used by Prisma schemas: DATABASE_URL.
+		// Optional per-engine URLs are supported but default back to DATABASE_URL.
 		this.DATABASE_URL_MONGODB = this.getString("DATABASE_URL_MONGODB", process.env.DATABASE_URL || "");
-		this.DATABASE_URL_MYSQL = this.getString("DATABASE_URL_MYSQL", "");
+		this.DATABASE_URL_MYSQL = this.getString("DATABASE_URL_MYSQL", process.env.DATABASE_URL || "");
 		
-		// Set DATABASE_URL based on DATABASE_TYPE
-		this.DATABASE_URL = this.DATABASE_TYPE === "mysql" 
-			? this.DATABASE_URL_MYSQL 
-			: this.DATABASE_URL_MONGODB;
+		// Set DATABASE_URL based on DATABASE_TYPE, falling back to generic DATABASE_URL.
+		if (this.DATABASE_TYPE === "mysql") {
+			this.DATABASE_URL = this.DATABASE_URL_MYSQL || this.getString("DATABASE_URL", "");
+		} else {
+			this.DATABASE_URL = this.DATABASE_URL_MONGODB || this.getString("DATABASE_URL", "");
+		}
 		
 		this.LOG_LEVEL = this.getString("LOG_LEVEL", "info");
 		this.FRONTEND_URL = _
@@ -115,6 +123,8 @@ class Environment implements EnvConfig {
 		this.IMAGEKIT_URL_ENDPOINT = this.getString("IMAGEKIT_URL_ENDPOINT", "");
 		// Redis – optional; default redis://localhost:6379 for local dev
 		this.REDIS_URL = this.getString("REDIS_URL", "");
+		// Google Maps – optional; empty = maps endpoints return 503
+		this.GOOGLE_MAPS_API_KEY = this.getString("GOOGLE_MAPS_API_KEY", "");
 	}
 
 	private getString(key: string, defaultValue?: string): string {

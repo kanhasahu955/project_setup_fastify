@@ -5,7 +5,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL_POSTGRES")
+  // Use a single DATABASE_URL env var for all providers by default
+  url      = env("DATABASE_URL")
 }
 
 /////////////////////////
@@ -130,6 +131,10 @@ model User {
   avatar          String?   @db.VarChar(500)
   lastLogin       DateTime?
 
+  lastLatitude    Float?
+  lastLongitude   Float?
+  lastLocationAt  DateTime?
+
   // KYC Details (stored as JSON)
   kycAadharNumber     String?   @db.Text
   kycAadharName       String?   @db.VarChar(100)
@@ -147,10 +152,12 @@ model User {
   kycVerifiedAt       DateTime?
   kycVerifiedBy       String?   @db.VarChar(100)
 
-  profile       Profile?
-  listings      Listing[]
-  subscriptions Subscription[]
-  projects      Project[]
+  profile         Profile?
+  listings        Listing[]
+  subscriptions   Subscription[]
+  projects        Project[]
+  listingFavorites ListingFavorite[]
+  listingLikes     ListingLike[]
 
   leadsAsBuyer Lead[] @relation("BuyerLeads")
   leadsAsOwner Lead[] @relation("OwnerLeads")
@@ -158,12 +165,28 @@ model User {
   reviewsGiven    Review[] @relation("Reviewer")
   reviewsReceived Review[] @relation("ReviewTarget")
 
+  locationLogs    LocationLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([phone])
   @@index([role])
+}
+
+model LocationLog {
+  id        String   @id @default(uuid())
+  userId    String   @db.VarChar(36)
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Otp {
@@ -257,9 +280,11 @@ model Listing {
   projectId String?  @db.VarChar(36)
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  images    ListingImage[]
-  amenities AmenityOnListing[]
-  leads     Lead[]
+  images          ListingImage[]
+  amenities       AmenityOnListing[]
+  leads           Lead[]
+  favorites       ListingFavorite[]
+  likes           ListingLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -272,6 +297,32 @@ model Listing {
   @@index([propertyType])
   @@index([slug])
   @@index([deletedAt])
+}
+
+model ListingFavorite {
+  id        String   @id @default(uuid())
+  userId    String   @db.VarChar(36)
+  listingId String   @db.VarChar(36)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+model ListingLike {
+  id        String   @id @default(uuid())
+  userId    String   @db.VarChar(36)
+  listingId String   @db.VarChar(36)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
 }
 
 model Lead {

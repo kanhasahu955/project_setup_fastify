@@ -10,6 +10,8 @@ type Mutation {
   login(input: LoginInput!): LoginApiResponse!
 
   # User mutations
+  "Update current user location (live tracking)"
+  updateMyLocation(latitude: Float!, longitude: Float!, accuracy: Float): UserLocation!
   updateUser(id: ID!, input: UpdateUserInput!): User!
   deleteUser(id: ID!): SuccessResponse!
   updatePassword(id: ID!, input: UpdatePasswordInput!): SuccessResponse!

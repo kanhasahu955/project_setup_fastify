@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { userController } from "@/controllers/user.controller";
 import { authController } from "@/controllers/auth.controller";
 import { UserRouteSchemas, AuthRouteSchemas } from "@/schemas/user.schema";
+import { authenticate } from "@/hooks/auth.hook";
 
 export async function userRoutes(app: FastifyInstance) {
     // Auth routes with OTP verification
@@ -10,8 +11,11 @@ export async function userRoutes(app: FastifyInstance) {
     app.post("/auth/resend-otp", { schema: AuthRouteSchemas.resendOtp }, authController.resendOtp);
     app.post("/auth/login", { schema: AuthRouteSchemas.login }, authController.login);
 
-    // Current user routes
-    app.get("/users/me", { schema: UserRouteSchemas.getMe }, userController.getMe);
+    // Current user routes (requires JWT)
+    app.get("/users/me", { schema: UserRouteSchemas.getMe, preHandler: [authenticate] }, userController.getMe);
+    app.get("/users/me/location", { schema: UserRouteSchemas.getLocation, preHandler: [authenticate] }, userController.getLocation);
+    app.patch("/users/me/location", { schema: UserRouteSchemas.updateLocation, preHandler: [authenticate] }, userController.updateLocation);
+    app.get("/users/me/location-history", { schema: UserRouteSchemas.getLocationHistory, preHandler: [authenticate] }, userController.getLocationHistory);
 
     // User CRUD routes
     app.get("/users", { schema: UserRouteSchemas.list }, userController.list);

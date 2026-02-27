@@ -1,7 +1,10 @@
 import { userService } from "@/services/user.service";
 import { authService } from "@/services/auth.service";
+import { listingService } from "@/services/listing.service";
 import { imagekitService } from "@/services/imagekit.service";
+import { googleMapsService } from "@/services/googleMaps.service";
 import prisma from "@/config/prisma.config";
+import { getPrismaErrorMessage } from "@/utils/prismaError.util";
 import { formatDate } from "@/utils/date.util";
 import {
     registerSchema,
@@ -88,6 +91,19 @@ export const resolvers = {
                 profile: true,
                 subscriptions: true,
             });
+        },
+
+        myLocation: async (_: unknown, __: unknown, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            const loc = await userService.getLocation(context.user.id);
+            if (!loc) return null;
+            return { ...loc, lastLocationAt: loc.lastLocationAt.toISOString() };
+        },
+
+        myLocationHistory: async (_: unknown, { limit }: { limit?: number }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            const history = await userService.getLocationHistory(context.user.id, limit ?? 50);
+            return history.map((h) => ({ ...h, createdAt: h.createdAt.toISOString() }));
         },
 
         user: async (_: unknown, { id }: { id: string }) => {
@@ -196,23 +212,19 @@ export const resolvers = {
         },
 
         // ============================================
-        // LISTING QUERIES
+        // LISTING QUERIES (same logic as REST via listingService)
         // ============================================
         listing: async (_: unknown, { id }: { id: string }) => {
-            return prisma.listing.findUnique({
-                where: { id },
-                include: {
-                    owner: true,
-                    project: true,
-                    images: { orderBy: { order: "asc" } },
-                    amenities: { include: { amenity: true } },
-                },
-            });
+            try {
+                return await listingService.findById(id);
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to get listing"));
+            }
         },
 
         listingBySlug: async (_: unknown, { slug }: { slug: string }) => {
-            return prisma.listing.findUnique({
-                where: { slug },
+            const listing = await prisma.listing.findFirst({
+                where: { slug, deletedAt: null },
                 include: {
                     owner: true,
                     project: true,
@@ -220,66 +232,34 @@ export const resolvers = {
                     amenities: { include: { amenity: true } },
                 },
             });
+            return listing;
         },
 
         listings: async (_: unknown, { input }: { input?: any }) => {
-            const page = input?.page || 1;
-            const limit = input?.limit || 10;
-            const skip = (page - 1) * limit;
-
-            const where: any = { deletedAt: null };
-            if (input?.search) {
-                where.OR = [
-                    { title: { contains: input.search, mode: "insensitive" } },
-                    { city: { contains: input.search, mode: "insensitive" } },
-                    { locality: { contains: input.search, mode: "insensitive" } },
-                ];
+            try {
+                const result = await listingService.list(input);
+                return { data: result.data, pagination: result.meta };
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to list listings"));
             }
-            if (input?.city) where.city = input.city;
-            if (input?.locality) where.locality = input.locality;
-            if (input?.listingType) where.listingType = input.listingType;
-            if (input?.propertyType) where.propertyType = input.propertyType;
-            if (input?.status) where.status = input.status;
-            if (input?.minPrice) where.price = { ...where.price, gte: input.minPrice };
-            if (input?.maxPrice) where.price = { ...where.price, lte: input.maxPrice };
-            if (input?.bedrooms) where.bedrooms = input.bedrooms;
-            if (input?.ownerId) where.ownerId = input.ownerId;
-            if (input?.projectId) where.projectId = input.projectId;
-            if (input?.isFeatured !== undefined) where.isFeatured = input.isFeatured;
-            if (input?.isVerified !== undefined) where.isVerified = input.isVerified;
-
-            const [data, total] = await Promise.all([
-                prisma.listing.findMany({
-                    where,
-                    skip,
-                    take: limit,
-                    include: {
-                        owner: true,
-                        images: { where: { isPrimary: true }, take: 1 },
-                    },
-                    orderBy: { [input?.sortBy || "createdAt"]: input?.sortOrder || "desc" },
-                }),
-                prisma.listing.count({ where }),
-            ]);
-
-            return { data, pagination: buildPagination(total, page, limit) };
         },
 
         listingStats: async () => {
-            const [total, active, pending, sold, rented] = await Promise.all([
-                prisma.listing.count({ where: { deletedAt: null } }),
-                prisma.listing.count({ where: { status: "ACTIVE", deletedAt: null } }),
-                prisma.listing.count({ where: { status: "PENDING_APPROVAL", deletedAt: null } }),
-                prisma.listing.count({ where: { status: "SOLD", deletedAt: null } }),
-                prisma.listing.count({ where: { status: "RENTED", deletedAt: null } }),
-            ]);
-            return { total, active, pending, sold, rented };
+            try {
+                return await listingService.stats();
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to get listing stats"));
+            }
         },
 
         myListings: async (_: unknown, { input }: { input?: any }, context: Context) => {
             if (!context.user?.id) throw new Error("Not authenticated");
-            const modifiedInput = { ...input, ownerId: context.user.id };
-            return resolvers.Query.listings(_, { input: modifiedInput });
+            try {
+                const result = await listingService.list({ ...input, ownerId: context.user.id });
+                return { data: result.data, pagination: result.meta };
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to list your listings"));
+            }
         },
 
         featuredListings: async (_: unknown, { limit = 10 }: { limit?: number }) => {
@@ -298,21 +278,10 @@ export const resolvers = {
 
         nearbyListings: async (
             _: unknown,
-            { latitude, longitude, radiusKm = 10, limit = 20 }: any
+            { latitude, longitude, radiusKm = 10, limit = 20 }: { latitude: number; longitude: number; radiusKm?: number; limit?: number }
         ) => {
-            const latDiff = radiusKm / 111;
-            const lonDiff = radiusKm / (111 * Math.cos((latitude * Math.PI) / 180));
-
-            return prisma.listing.findMany({
-                where: {
-                    status: "ACTIVE",
-                    deletedAt: null,
-                    latitude: { gte: latitude - latDiff, lte: latitude + latDiff },
-                    longitude: { gte: longitude - lonDiff, lte: longitude + lonDiff },
-                },
-                take: limit,
-                include: { owner: true, images: { where: { isPrimary: true }, take: 1 } },
-            });
+            const result = await listingService.nearby(latitude, longitude, radiusKm ?? 10, limit ?? 20);
+            return result.data;
         },
 
         // ============================================
@@ -443,6 +412,26 @@ export const resolvers = {
             const files = await imagekitService.listFiles({ path, limit });
             return files;
         },
+
+        // ============================================
+        // MAPS (Google Places / Geocoding)
+        // ============================================
+        mapsAutocomplete: async (_: unknown, { input, sessionToken }: { input: string; sessionToken?: string }) => {
+            if (!input?.trim()) throw new Error("input is required");
+            return googleMapsService.autocomplete(input, sessionToken);
+        },
+
+        mapsPlaceDetails: async (_: unknown, { placeId }: { placeId: string }) => {
+            if (!placeId?.trim()) throw new Error("placeId is required");
+            return googleMapsService.getPlaceDetails(placeId);
+        },
+
+        mapsGeocode: async (_: unknown, { lat, lng }: { lat: number; lng: number }) => {
+            if (typeof lat !== "number" || typeof lng !== "number" || Number.isNaN(lat) || Number.isNaN(lng)) {
+                throw new Error("lat and lng must be valid numbers");
+            }
+            return googleMapsService.reverseGeocode(lat, lng);
+        },
     },
 
     Mutation: {
@@ -497,6 +486,16 @@ export const resolvers = {
         // ============================================
         // USER MUTATIONS
         // ============================================
+        updateMyLocation: async (
+            _: unknown,
+            { latitude, longitude, accuracy }: { latitude: number; longitude: number; accuracy?: number },
+            context: Context
+        ) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            const loc = await userService.updateLocation(context.user.id, { latitude, longitude, accuracy });
+            return { ...loc, lastLocationAt: loc.lastLocationAt.toISOString() };
+        },
+
         updateUser: async (_: unknown, { id, input }: { id: string; input: any }) => {
             const user = await userService.update(id, input);
             if (!user) throw new Error("User not found");
@@ -602,70 +601,32 @@ export const resolvers = {
         },
 
         // ============================================
-        // LISTING MUTATIONS
+        // LISTING MUTATIONS (same logic as REST via listingService)
         // ============================================
         createListing: async (_: unknown, { input }: { input: any }, context: Context) => {
             if (!context.user?.id) throw new Error("Not authenticated");
-
-            const { amenityIds, images, ...listingData } = input;
-
-            const listing = await prisma.listing.create({
-                data: {
-                    ...listingData,
-                    slug: generateSlug(input.title),
-                    ownerId: context.user.id,
-                    status: "DRAFT",
-                },
-            });
-
-            if (images?.length) {
-                await prisma.listingImage.createMany({
-                    data: images.map((img: any, index: number) => ({
-                        listingId: listing.id,
-                        url: img.url,
-                        isPrimary: img.isPrimary || index === 0,
-                        order: img.order || index,
-                    })),
-                });
+            try {
+                return await listingService.create(context.user.id, input);
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to create listing"));
             }
-
-            if (amenityIds?.length) {
-                await prisma.amenityOnListing.createMany({
-                    data: amenityIds.map((amenityId: string) => ({
-                        listingId: listing.id,
-                        amenityId,
-                    })),
-                });
-            }
-
-            return prisma.listing.findUnique({
-                where: { id: listing.id },
-                include: {
-                    owner: true,
-                    images: { orderBy: { order: "asc" } },
-                    amenities: { include: { amenity: true } },
-                },
-            });
         },
 
         updateListing: async (_: unknown, { id, input }: { id: string; input: any }) => {
-            return prisma.listing.update({
-                where: { id },
-                data: input,
-                include: {
-                    owner: true,
-                    images: { orderBy: { order: "asc" } },
-                    amenities: { include: { amenity: true } },
-                },
-            });
+            try {
+                return await listingService.update(id, input);
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to update listing"));
+            }
         },
 
         deleteListing: async (_: unknown, { id }: { id: string }) => {
-            await prisma.listing.update({
-                where: { id },
-                data: { deletedAt: new Date() },
-            });
-            return { success: true, message: "Listing deleted successfully" };
+            try {
+                await listingService.softDelete(id);
+                return { success: true, message: "Listing deleted successfully" };
+            } catch (e) {
+                throw new Error(getPrismaErrorMessage(e, "Failed to delete listing"));
+            }
         },
 
         publishListing: async (_: unknown, { id }: { id: string }) => {

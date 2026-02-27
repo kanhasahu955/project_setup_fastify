@@ -26,6 +26,17 @@ export async function registerSwagger(app: FastifyInstance) {
 
                     ## Getting Started
                     Visit the health check endpoint at \`/api/v1/health\` to verify the API is running.
+
+                    ## Authentication (JWT)
+                    Endpoints that require auth (e.g. **POST /api/v1/listings**) expect a JWT in the \`Authorization\` header.
+
+                    1. **Get a token:** Call \`POST /api/v1/auth/login\` with body:
+                    \`\`\`json
+                    { "identifier": "your@email.com", "password": "yourpassword" }
+                    \`\`\`
+                    2. Use the \`data.token\` from the response.
+                    3. In Swagger: click **Authorize**, enter \`Bearer <paste-token-here>\` (or just the token if the UI adds "Bearer").
+                    4. Any role (BUYER, OWNER, AGENT, etc.) can create listings; the listing \`ownerId\` is set from the authenticated user.
                 `,
                 version: '1.0.0',
                 contact: {
@@ -54,12 +65,20 @@ export async function registerSwagger(app: FastifyInstance) {
                     description: 'Health check and system status endpoints'
                 },
                 {
-                    name: 'users',
-                    description: 'User management endpoints - CRUD operations for users'
+                    name: 'Auth',
+                    description: 'Login, register, OTP verification'
                 },
                 {
-                    name: 'posts',
-                    description: 'Post management endpoints - CRUD operations for posts'
+                    name: 'Users',
+                    description: 'User management, profile, and live location'
+                },
+                {
+                    name: 'Listings',
+                    description: 'Property listings (create requires JWT, includes nearby search)'
+                },
+                {
+                    name: 'Maps',
+                    description: 'Google Maps integration: address autocomplete, place details, reverse geocoding'
                 }
             ],
             components: {
@@ -271,11 +290,11 @@ export async function registerSwagger(app: FastifyInstance) {
         },
         staticCSP: false,
         transformSpecification: (swaggerObject: any, request: any, _reply: any) => {
-            // Use request origin as server URL so "Try it out" targets the same host (fixes localhost on production)
+            // Use request origin + /api/v1 so "Try it out" calls real routes in all envs
             const host = request?.headers?.host;
             const proto = request?.headers?.['x-forwarded-proto'] || (request?.protocol === 'https' ? 'https' : 'http');
             if (host) {
-                const baseUrl = `${proto}://${host}`;
+                const baseUrl = `${proto}://${host}/api/v1`;
                 swaggerObject.servers = [{ url: baseUrl, description: 'This server' }];
             }
             // Transform isFile properties to proper OpenAPI 3.0 binary format

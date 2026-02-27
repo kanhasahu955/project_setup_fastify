@@ -5,7 +5,8 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL_MONGODB")
+  // Use a single DATABASE_URL env var for all providers by default
+  url      = env("DATABASE_URL")
 }
 
 /////////////////////////
@@ -122,13 +123,21 @@ model User {
   avatar          String?
   lastLogin       DateTime?
 
+  lastLatitude    Float?
+  lastLongitude   Float?
+  lastLocationAt  DateTime?
+
   // KYC Details
   kyc KycDetails?
 
-  profile       Profile?
-  listings      Listing[]
-  subscriptions Subscription[]
-  projects      Project[]
+  locationLogs      LocationLog[]
+
+  profile           Profile?
+  listings          Listing[]
+  subscriptions     Subscription[]
+  projects          Project[]
+  listingFavorites  ListingFavorite[]
+  listingLikes      ListingLike[]
 
   leadsAsBuyer Lead[] @relation("BuyerLeads")
   leadsAsOwner Lead[] @relation("OwnerLeads")
@@ -258,12 +267,40 @@ model Listing {
   projectId String?  @db.ObjectId
   project   Project? @relation(fields: [projectId], references: [id])
 
-  images    ListingImage[]
-  amenities AmenityOnListing[]
-  leads     Lead[]
+  images          ListingImage[]
+  amenities       AmenityOnListing[]
+  leads           Lead[]
+  favorites       ListingFavorite[]
+  likes           ListingLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ListingFavorite {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  listingId String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+model ListingLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  listingId String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
 }
 
 model Lead {
@@ -282,6 +319,20 @@ model Lead {
   listing Listing @relation(fields: [listingId], references: [id])
   buyer   User    @relation("BuyerLeads", fields: [buyerId], references: [id])
   owner   User    @relation("OwnerLeads", fields: [ownerId], references: [id])
+}
+
+model LocationLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Subscription {

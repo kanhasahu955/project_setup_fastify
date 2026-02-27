@@ -316,6 +316,92 @@ export const UserRouteSchemas = {
         },
     }),
 
+    getLocation: buildSchema({
+        description: "Get current user's last reported location (live tracking)",
+        tags: ["Users"],
+        security: [{ bearerAuth: [] }],
+        response: {
+            200: successResponse(
+                {
+                    type: "object",
+                    properties: {
+                        latitude: { type: "number" },
+                        longitude: { type: "number" },
+                        lastLocationAt: { type: "string", format: "date-time" },
+                    },
+                },
+                "Location retrieved"
+            ),
+            401: ErrorResponses.Unauthorized,
+            404: ErrorResponses.NotFound,
+        },
+    }),
+
+    updateLocation: buildSchema({
+        description: "Update current user location (live tracking). Also appends to location history.",
+        tags: ["Users"],
+        security: [{ bearerAuth: [] }],
+        body: {
+            type: "object",
+            required: ["latitude", "longitude"],
+            properties: {
+                latitude: { type: "number" },
+                longitude: { type: "number" },
+                accuracy: { type: "number", nullable: true },
+            },
+        },
+        response: {
+            200: successResponse(
+                {
+                    type: "object",
+                    properties: {
+                        latitude: { type: "number" },
+                        longitude: { type: "number" },
+                        lastLocationAt: { type: "string", format: "date-time" },
+                    },
+                },
+                "Location updated"
+            ),
+            400: ErrorResponses.ValidationError,
+            401: ErrorResponses.Unauthorized,
+        },
+    }),
+
+    getLocationHistory: buildSchema({
+        description: "Get current user's location history (track log)",
+        tags: ["Users"],
+        security: [{ bearerAuth: [] }],
+        querystring: {
+            type: "object",
+            properties: {
+                limit: { type: "string", description: "Max entries (default 50, max 100)" },
+            },
+        },
+        response: {
+            200: successResponse(
+                {
+                    type: "object",
+                    properties: {
+                        history: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    latitude: { type: "number" },
+                                    longitude: { type: "number" },
+                                    accuracy: { type: "number", nullable: true },
+                                    createdAt: { type: "string", format: "date-time" },
+                                },
+                            },
+                        },
+                    },
+                },
+                "Location history"
+            ),
+            401: ErrorResponses.Unauthorized,
+        },
+    }),
+
     list: buildSchema({
         description: "List users with pagination and filters",
         tags: ["Users"],

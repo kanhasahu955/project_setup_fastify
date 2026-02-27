@@ -314,6 +314,23 @@ type Listing {
   leads: [Lead]
   createdAt: String!
   updatedAt: String!
+  "Distance in km (only for nearbyListings)"
+  distanceKm: Float
+}
+
+"User last reported location (live tracking)"
+type UserLocation {
+  latitude: Float!
+  longitude: Float!
+  lastLocationAt: String!
+}
+
+"Single entry in location history"
+type LocationLogEntry {
+  latitude: Float!
+  longitude: Float!
+  accuracy: Float
+  createdAt: String!
 }
 
 # ============================================
@@ -391,6 +408,41 @@ type ImageKitAuthParams {
   token: String!
   expire: Int!
   signature: String!
+}
+
+# ============================================
+# MAPS (Google Places / Geocoding)
+# ============================================
+
+"Single address/place suggestion from autocomplete"
+type MapsAutocompletePrediction {
+  placeId: String!
+  description: String!
+  mainText: String!
+  secondaryText: String!
+}
+
+"Place details: lat, lng, formatted address (from place_id)"
+type MapsPlaceDetails {
+  placeId: String!
+  formattedAddress: String!
+  latitude: Float!
+  longitude: Float!
+  city: String
+  locality: String
+  state: String
+  pincode: String
+}
+
+"Reverse geocode result: address from lat/lng"
+type MapsGeocodeResult {
+  formattedAddress: String!
+  latitude: Float!
+  longitude: Float!
+  city: String
+  locality: String
+  state: String
+  pincode: String
 }
 
 # ============================================

@@ -4,17 +4,15 @@ import { typeDefs } from "@/graphql/schema";
 import { resolvers } from "@/graphql/resolvers";
 import { env } from "@/config/env.config";
 
-async function extractUser(request: FastifyRequest, app: FastifyInstance) {
+/**
+ * Same JWT verification as REST: use request.jwtVerify() so Bearer token
+ * is validated identically and request.user is set by @fastify/jwt.
+ */
+async function extractUser(request: FastifyRequest): Promise<{ id: string; role: string; email: string } | null> {
     try {
-        const authHeader = request.headers.authorization;
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-
-        const token = authHeader.substring(7);
-        const decoded = app.jwt.verify(token) as { id: string; role: string; email: string };
-        return decoded;
-    } catch (error) {
+        await request.jwtVerify();
+        return (request as any).user ?? null;
+    } catch {
         return null;
     }
 }
@@ -27,8 +25,8 @@ export async function registerGraphQL(app: FastifyInstance): Promise<void> {
         ide: env.NODE_ENV !== "production",
         path: "/graphql",
         context: async (request) => {
-            const user = await extractUser(request, app);
-            return { 
+            const user = await extractUser(request);
+            return {
                 user,
                 app,
             };

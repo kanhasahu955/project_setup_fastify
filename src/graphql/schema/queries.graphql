@@ -8,6 +8,10 @@ type Query {
 
   # User queries
   me: User
+  "Current user's last reported location (live tracking)"
+  myLocation: UserLocation
+  "Current user's location history (track log)"
+  myLocationHistory(limit: Int): [LocationLogEntry]!
   user(id: ID!): User
   users(input: UserListInput): UserListResponse!
   userStats: UserStats!
@@ -56,4 +60,12 @@ type Query {
   # ImageKit queries
   imageKitAuthParams: ImageKitAuthParams!
   imageKitFiles(path: String, limit: Int): [ImageKitFile]!
+
+  # Maps (Google Places / Geocoding) – requires GOOGLE_MAPS_API_KEY
+  "Address autocomplete (Google Places)"
+  mapsAutocomplete(input: String!, sessionToken: String): [MapsAutocompletePrediction]!
+  "Place details (lat, lng, address) by Google place_id"
+  mapsPlaceDetails(placeId: String!): MapsPlaceDetails!
+  "Reverse geocode: lat/lng to address"
+  mapsGeocode(lat: Float!, lng: Float!): MapsGeocodeResult!
 }

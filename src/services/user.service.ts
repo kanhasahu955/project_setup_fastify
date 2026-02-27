@@ -484,6 +484,60 @@ class UserService {
 
         return updatedUser.kyc;
     }
+
+    async updateLocation(
+        userId: string,
+        data: { latitude: number; longitude: number; accuracy?: number }
+    ): Promise<{ latitude: number; longitude: number; lastLocationAt: Date }> {
+        const now = new Date();
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                lastLatitude: data.latitude,
+                lastLongitude: data.longitude,
+                lastLocationAt: now,
+            },
+        });
+        await prisma.locationLog.create({
+            data: {
+                userId,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                accuracy: data.accuracy ?? undefined,
+            },
+        });
+        return { latitude: data.latitude, longitude: data.longitude, lastLocationAt: now };
+    }
+
+    async getLocation(userId: string): Promise<{ latitude: number; longitude: number; lastLocationAt: Date } | null> {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { lastLatitude: true, lastLongitude: true, lastLocationAt: true },
+        });
+        if (!user || user.lastLatitude == null || user.lastLongitude == null) return null;
+        return {
+            latitude: user.lastLatitude,
+            longitude: user.lastLongitude,
+            lastLocationAt: user.lastLocationAt!,
+        };
+    }
+
+    async getLocationHistory(
+        userId: string,
+        limit: number = 50
+    ): Promise<{ latitude: number; longitude: number; accuracy?: number; createdAt: Date }[]> {
+        const logs = await prisma.locationLog.findMany({
+            where: { userId },
+            orderBy: { createdAt: "desc" },
+            take: Math.min(limit, 100),
+        });
+        return logs.map((l: { latitude: number; longitude: number; accuracy: number | null; createdAt: Date }) => ({
+            latitude: l.latitude,
+            longitude: l.longitude,
+            accuracy: l.accuracy ?? undefined,
+            createdAt: l.createdAt,
+        }));
+    }
 }
 
 export const userService = new UserService();
