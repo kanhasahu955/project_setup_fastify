@@ -9,7 +9,6 @@ services:
     runtime: node
     region: oregon
     plan: free
-    rootDir: fastify_backend
     buildCommand: npm install && npm run build:ci
     startCommand: npm run db:push:auto && npm start
     healthCheckPath: /api/v1/health
