@@ -18,10 +18,18 @@ export function normalizePrismaError(error: unknown): NormalizedError {
             errors: [{ field, message: `Invalid ${fieldName}. Expected ${expected}.` }],
         };
     }
-    if (msg.includes("Unknown arg") || msg.includes("Invalid ")) {
+    const unknownArgMatch = msg.match(/Unknown arg `([^`]+)`/);
+    if (unknownArgMatch) {
         return {
             message: "Validation failed",
-            errors: [{ field: "body", message: msg.split("\n")[0] || "Invalid request data." }],
+            errors: [{ field: unknownArgMatch[1], message: `Unknown or invalid field: ${unknownArgMatch[1]}` }],
+        };
+    }
+    if (msg.includes("Invalid ")) {
+        const firstLine = msg.split("\n")[0]?.trim() || "Invalid request data.";
+        return {
+            message: "Validation failed",
+            errors: [{ field: "body", message: firstLine }],
         };
     }
     return { message: msg.split("\n")[0] || "Request failed." };

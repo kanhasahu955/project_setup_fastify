@@ -163,13 +163,37 @@ class ListingService {
         return listing as SafeListing | null;
     }
 
+    /** Keys allowed on Prisma Listing create (excludes relations and client-only fields like __typename). */
+    private static readonly LISTING_CREATE_KEYS = [
+        "title", "description", "price", "pricePerSqft", "listingType", "propertyType", "condition",
+        "bedrooms", "bathrooms", "balconies", "floor", "totalFloors", "area", "carpetArea", "builtUpArea",
+        "furnishing", "facing", "city", "locality", "state", "pincode", "latitude", "longitude", "projectId",
+    ] as const;
+
+    private static readonly LISTING_NUMERIC_KEYS = new Set([
+        "price", "pricePerSqft", "bedrooms", "bathrooms", "balconies", "floor", "totalFloors",
+        "area", "carpetArea", "builtUpArea", "latitude", "longitude",
+    ]);
+
     async create(ownerId: string, input: CreateListingInput): Promise<SafeListing> {
-        const { amenityIds, images, ...listingData } = input;
+        const { amenityIds, images, ...rest } = input;
+        const raw: Record<string, unknown> = {};
+        for (const key of ListingService.LISTING_CREATE_KEYS as readonly string[]) {
+            if (!(key in rest)) continue;
+            let value = (rest as any)[key];
+            if (value === undefined) continue;
+            if (ListingService.LISTING_NUMERIC_KEYS.has(key) && typeof value === "string") {
+                const n = Number(value);
+                if (Number.isFinite(n)) value = n;
+            }
+            if (key === "projectId" && (value === "" || value === null)) continue;
+            raw[key] = value;
+        }
 
         const listing = await prisma.listing.create({
             data: {
-                ...listingData,
-                slug: generateSlug(input.title),
+                ...raw,
+                slug: generateSlug(String(input.title)),
                 ownerId,
                 status: "DRAFT",
             },

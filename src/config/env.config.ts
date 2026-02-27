@@ -132,10 +132,10 @@ class Environment implements EnvConfig {
 		this.FIREBASE_CLIENT_EMAIL = this.getString("FIREBASE_CLIENT_EMAIL", "");
 		this.FIREBASE_PRIVATE_KEY = this.getString("FIREBASE_PRIVATE_KEY", "").replace(/\\n/g, "\n");
 		this.FIREBASE_STORAGE_BUCKET = this.getString("FIREBASE_STORAGE_BUCKET", "");
-		// ImageKit Configuration
+		// ImageKit Configuration (IMAGEKIT_ENDPOINT accepted as alias for IMAGEKIT_URL_ENDPOINT)
 		this.IMAGEKIT_PUBLIC_KEY = this.getString("IMAGEKIT_PUBLIC_KEY", "");
 		this.IMAGEKIT_PRIVATE_KEY = this.getString("IMAGEKIT_PRIVATE_KEY", "");
-		this.IMAGEKIT_URL_ENDPOINT = this.getString("IMAGEKIT_URL_ENDPOINT", "");
+		this.IMAGEKIT_URL_ENDPOINT = this.getString("IMAGEKIT_URL_ENDPOINT", "") || this.getString("IMAGEKIT_ENDPOINT", "");
 		// Redis – optional; default redis://localhost:6379 for local dev
 		this.REDIS_URL = this.getString("REDIS_URL", "");
 		// Google Maps – optional; empty = maps endpoints return 503
