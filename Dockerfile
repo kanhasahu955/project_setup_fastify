@@ -1,3 +1,24 @@
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    PORT=8000 \
+    HOST=0.0.0.0
+
+# 1) Install dependencies
+COPY package*.json ./
+RUN npm install --omit=dev
+
+# 2) Copy source
+COPY . .
+
+# 3) Generate Prisma clients and build TypeScript
+RUN npm run prisma:generate:all && npm run build
+
+# 4) On container start: push schema for selected DATABASE_TYPE, then start API
+CMD sh -c "npm run db:push:auto && npm start"
+
 # ---------------------------
 # Stage 1: Dependencies (for dev + build)
 # ---------------------------

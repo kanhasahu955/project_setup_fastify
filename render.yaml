@@ -6,24 +6,10 @@
 services:
   - type: web
     name: livebhoomi-api
-    runtime: node
+    runtime: docker
     region: oregon
     plan: free
-    # No rootDir: Render runs from repo root. Build and start must cd into fastify_backend.
-    # Run Prisma generate + db push for the selected DATABASE_TYPE (mongodb by default), then build.
-    buildCommand: >
-      npm install &&
-      npm run prisma:generate:all &&
-      npm run db:push:auto &&
-      npm run build
-    startCommand: >
-      if [ "$DATABASE_TYPE" = "postgresql" ]; then
-        npm run start:postgresql;
-      elif [ "$DATABASE_TYPE" = "mysql" ]; then
-        npm run start:mysql;
-      else
-        npm run start:mongodb;
-      fi
+    dockerfilePath: Dockerfile
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
