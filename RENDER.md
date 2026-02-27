@@ -19,6 +19,15 @@ Registration and resend-OTP send emails via **SMTP**. Set these env vars in Dash
 
 If SMTP vars are missing or wrong, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact nodemailer error.
 
+### "Connection timeout" (ETIMEDOUT) on Render
+
+If logs show **`Failed to send email: Error: Connection timeout`** with `code: 'ETIMEDOUT'`, Render’s network often **cannot reach Gmail SMTP** (smtp.gmail.com:587). Many cloud providers block or throttle outbound SMTP to Gmail.
+
+**Options:**
+
+1. **Use a transactional email provider for production** (recommended): Sign up for [Resend](https://resend.com), [SendGrid](https://sendgrid.com), or [Mailgun](https://mailgun.com). They give you SMTP host/port and API keys that work from Render. Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM_EMAIL` (verified sender) in Render from their dashboard. Keep Gmail in local `.env` if you like.
+2. **Longer timeouts**: The app now uses 20s connection/greeting timeouts; redeploy and retry. If the network still blocks Gmail, timeouts won’t fix it.
+
 ---
 
 ## Timeout / "Nothing happens" on first request
