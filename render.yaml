@@ -5,20 +5,24 @@
 
 services:
   - type: web
-    name: livebhoomi-api
+    name: live-bhoomi
     runtime: docker
     region: oregon
     plan: free
     dockerfilePath: Dockerfile
     healthCheckPath: /api/v1/health
     envVars:
+      # Core runtime
+      - key: PORT
+        value: "8000"
       - key: NODE_ENV
         value: production
       - key: HOST
         value: "0.0.0.0"
       - key: LOG_LEVEL
         value: info
-      # Default DB is MongoDB; override DATABASE_TYPE and DATABASE_URL in Render dashboard to switch engines.
+      # Database Configuration – default DB is MongoDB.
+      # Override DATABASE_TYPE and DATABASE_URL in Render dashboard to switch engines.
       - key: DATABASE_TYPE
         value: mongodb
       - key: DATABASE_URL
@@ -29,16 +33,19 @@ services:
         sync: false
       - key: DATABASE_URL_POSTGRES
         sync: false
+      # CORS / frontend URLs (comma-separated)
       - key: FRONTEND_URL
         sync: false
+      # Auth & security
       - key: JWT_SECRET
-        generateValue: true
+        sync: false
       - key: COOKIE_SECRET
-        generateValue: true
+        sync: false
       - key: JWT_EXPIRES_IN
         value: 1d
       - key: USE_HTTPS
         value: "false"
+      # Mail / Resend
       - key: RESEND_API_KEY
         sync: false
       - key: SMTP_USER
@@ -47,11 +54,22 @@ services:
         sync: false
       - key: MAIL_FROM_NAME
         value: "Live Bhoomi"
+      # ImageKit configuration (match .env keys)
       - key: IMAGEKIT_PUBLIC_KEY
         sync: false
       - key: IMAGEKIT_PRIVATE_KEY
         sync: false
       - key: IMAGEKIT_URL_ENDPOINT
         sync: false
+      - key: IMAGEKIT_API_KEY
+        sync: false
+      - key: IMAGEKIT_SECRET_KEY
+        sync: false
+      - key: IMAGEKIT_ENDPOINT
+        sync: false
+      # Redis (optional)
       - key: REDIS_URL
+        sync: false
+      # Google Maps API key
+      - key: GOOGLE_MAPS_API_KEY
         sync: false
