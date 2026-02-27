@@ -1,15 +1,17 @@
-# Render Blueprint – backend is in fastify_backend (monorepo).
+# Render Blueprint – Node runtime (same behaviour as local).
 # In Render: New > Blueprint, set Blueprint path to fastify_backend/render.yaml.
-# These commands run from REPO ROOT so we cd into fastify_backend for both build and start.
-# Set secret env vars in Render dashboard; never commit .env.
+# Set in Dashboard → Environment (same as local .env): DATABASE_URL, FRONTEND_URL,
+#   JWT_SECRET, COOKIE_SECRET, SMTP_USER, SMTP_PASS. Optional: GOOGLE_MAPS_API_KEY, IMAGEKIT_*, REDIS_URL.
 
 services:
   - type: web
     name: live-bhoomi
-    runtime: docker
+    runtime: node
     region: oregon
     plan: free
-    dockerfilePath: Dockerfile
+    rootDir: fastify_backend
+    buildCommand: npm install && npm run build:ci
+    startCommand: npm run db:push:auto && npm start
     healthCheckPath: /api/v1/health
     envVars:
       # Core runtime
@@ -45,13 +47,19 @@ services:
         value: 1d
       - key: USE_HTTPS
         value: "false"
-      # Mail (Gmail SMTP)
+      # Mail – set same as local .env for Gmail SMTP (same behaviour as local)
+      - key: SMTP_HOST
+        value: "smtp.gmail.com"
+      - key: SMTP_PORT
+        value: "587"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS
         sync: false
       - key: MAIL_FROM_NAME
         value: "Live Bhoomi"
+      - key: MAIL_FROM_EMAIL
+        sync: false
       # ImageKit configuration (match .env keys)
       - key: IMAGEKIT_PUBLIC_KEY
         sync: false

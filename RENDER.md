@@ -2,19 +2,22 @@
 
 ## "Failed to send verification email" (400)
 
-Registration and resend-OTP send emails via **Gmail SMTP**. On Render you must set these **Environment Variables** in the dashboard (Dashboard → your Web Service → Environment):
+Registration and resend-OTP send emails via **SMTP**. Set these env vars in Dashboard → your Web Service → Environment.
 
-| Variable        | Description | Example |
-|----------------|-------------|---------|
-| `SMTP_USER`    | Gmail address used to send mail | `yourapp@gmail.com` |
-| `SMTP_PASS`    | Gmail **App Password** (not your normal password) | 16-char app password |
-| `MAIL_FROM_NAME` | Sender display name (optional) | `Live Bhoomi` |
+| Variable          | Description | Example |
+|-------------------|-------------|---------|
+| `SMTP_HOST`       | SMTP host (optional; default Gmail) | `smtp.gmail.com` |
+| `SMTP_PORT`       | SMTP port (optional; default 587) | `587` |
+| `SMTP_USER`       | SMTP login (e.g. Gmail address) | `yourapp@gmail.com` |
+| `SMTP_PASS`       | SMTP password (Gmail: use **App Password**) | 16-char app password |
+| `MAIL_FROM_NAME`  | Sender display name | `Live Bhoomi` |
+| `MAIL_FROM_EMAIL` | From address (optional; defaults to SMTP_USER) | `yourapp@gmail.com` |
 
-1. Enable 2-Step Verification: [myaccount.google.com/security](https://myaccount.google.com/security).
-2. Create an **App Password**: Google Account → Security → 2-Step Verification → App passwords → generate for "Mail".
-3. Set `SMTP_USER` and `SMTP_PASS` on Render.
+**Gmail:** Enable 2-Step Verification, then create an **App Password** (Google Account → Security → App passwords). Set `SMTP_USER` to your Gmail and `SMTP_PASS` to that app password. Omit `SMTP_HOST`/`SMTP_PORT` to use Gmail defaults.
 
-If these are missing or wrong, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact error (e.g. "Mail not configured" or nodemailer error).
+**To match local:** Set the same values as in your local `.env`: `SMTP_USER` (Gmail), `SMTP_PASS` (Gmail App Password), and optionally `MAIL_FROM_EMAIL` (same as SMTP_USER). `SMTP_HOST`/`SMTP_PORT` in the blueprint default to Gmail.
+
+If SMTP vars are missing or wrong, the API returns 400 with "Failed to send verification email." Check **Render Logs** for the exact nodemailer error.
 
 ---
 

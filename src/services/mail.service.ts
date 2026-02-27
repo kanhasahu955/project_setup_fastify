@@ -17,7 +17,7 @@ class MailService {
 	private smtpFrom: string;
 
 	constructor() {
-		this.smtpFrom = `"${env.MAIL_FROM_NAME}" <${env.SMTP_USER || "noreply@localhost"}>`;
+		this.smtpFrom = `"${env.MAIL_FROM_NAME}" <${env.MAIL_FROM_EMAIL || env.SMTP_USER || "noreply@localhost"}>`;
 	}
 
 	/**

@@ -187,10 +187,11 @@ USE_HTTPS=false
 # Redis (optional – leave empty for in-memory cache)
 # REDIS_URL=redis://localhost:6379
 
-# Email (Gmail SMTP)
+# Email (SMTP – e.g. Gmail)
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 MAIL_FROM_NAME=Live Bhoomi
+# Optional: SMTP_HOST=smtp.gmail.com SMTP_PORT=587 MAIL_FROM_EMAIL=your-email@gmail.com
 
 # ImageKit
 IMAGEKIT_PRIVATE_KEY=private_your_key

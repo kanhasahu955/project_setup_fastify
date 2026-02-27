@@ -24,10 +24,13 @@ interface EnvConfig {
 	JWT_EXPIRES_IN: string;
 	USE_HTTPS: boolean;
 	API_URL: string;
-	// Mail Configuration (Gmail SMTP)
+	// Mail Configuration (SMTP – Gmail, SendGrid, etc.)
 	SMTP_USER: string;
 	SMTP_PASS: string;
+	SMTP_HOST: string;
+	SMTP_PORT: number;
 	MAIL_FROM_NAME: string;
+	MAIL_FROM_EMAIL: string;
 	// Firebase Configuration
 	FIREBASE_PROJECT_ID: string;
 	FIREBASE_CLIENT_EMAIL: string;
@@ -58,10 +61,13 @@ class Environment implements EnvConfig {
 	public readonly JWT_EXPIRES_IN: string;
 	public readonly USE_HTTPS: boolean;
 	public readonly API_URL: string;
-	// Mail Configuration (Gmail SMTP)
+	// Mail Configuration (SMTP – Gmail, SendGrid, etc.)
 	public readonly SMTP_USER: string;
 	public readonly SMTP_PASS: string;
+	public readonly SMTP_HOST: string;
+	public readonly SMTP_PORT: number;
 	public readonly MAIL_FROM_NAME: string;
+	public readonly MAIL_FROM_EMAIL: string;
 	// Firebase Configuration
 	public readonly FIREBASE_PROJECT_ID: string;
 	public readonly FIREBASE_CLIENT_EMAIL: string;
@@ -108,10 +114,13 @@ class Environment implements EnvConfig {
 		this.USE_HTTPS = this.getBoolean("USE_HTTPS", false);
 		// Render provides RENDER_EXTERNAL_URL automatically
 		this.API_URL = this.getString("API_URL", process.env.RENDER_EXTERNAL_URL || "");
-		// Mail Configuration (Gmail SMTP)
+		// Mail Configuration (SMTP – works with Gmail, SendGrid, etc.)
 		this.SMTP_USER = this.getString("SMTP_USER", "");
 		this.SMTP_PASS = this.getString("SMTP_PASS", "");
+		this.SMTP_HOST = this.getString("SMTP_HOST", "smtp.gmail.com");
+		this.SMTP_PORT = this.getNumber("SMTP_PORT", 587);
 		this.MAIL_FROM_NAME = this.getString("MAIL_FROM_NAME", "Live Bhoomi");
+		this.MAIL_FROM_EMAIL = this.getString("MAIL_FROM_EMAIL", this.SMTP_USER || "");
 		// Firebase Configuration
 		this.FIREBASE_PROJECT_ID = this.getString("FIREBASE_PROJECT_ID", "");
 		this.FIREBASE_CLIENT_EMAIL = this.getString("FIREBASE_CLIENT_EMAIL", "");
