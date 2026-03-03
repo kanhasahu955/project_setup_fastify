@@ -18,6 +18,7 @@ enum UserRole {
   OWNER
   AGENT
   BUILDER
+  CHANNEL_PARTNER
   ADMIN
 }
 
@@ -38,9 +39,16 @@ enum LeadStatus {
 
 enum PlanType {
   FREE
-  AGENT_BASIC
+  AGENT_BASIC 
   AGENT_PRO
   BUILDER_PRO
+  CHANNEL_PARTNER_PRO
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }
 
 enum ListingType {
@@ -102,6 +110,47 @@ enum AmenityCategory {
   SPORTS
   POWER_BACKUP
   WATER_SUPPLY
+  PG_FACILITY
+}
+
+enum ChannelPartnerStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+enum DocumentType {
+  AADHAR
+  PAN
+  RERA_CERTIFICATE
+  GST_CERTIFICATE
+  BUSINESS_LICENSE
+  PROPERTY_DEED
+  OTHER
+}
+
+enum DocumentVerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  COMPLETED
+  MISSED
+  NO_ANSWER
+  BUSY
+}
+
+enum AdvertisementType {
+  BANNER
+  PROMOTED_LISTING
+  PROMOTED_PROJECT
+  SPONSORED
 }
 
 /////////////////////////
@@ -146,6 +195,20 @@ model User {
 
   reviewsGiven    Review[] @relation("Reviewer")
   reviewsReceived Review[] @relation("ReviewTarget")
+
+  // Builder ↔ Channel partner links (builder side)
+  channelPartnerLinksAsBuilder BuilderChannelPartner[] @relation("BuilderChannelPartners")
+  // Channel partner side
+  builderLinksAsChannelPartner BuilderChannelPartner[] @relation("ChannelPartnerBuilders")
+
+  documentVerifications DocumentVerification[]
+
+  callsAsCaller   Call[]    @relation("CallCaller")
+  callsAsCallee   Call[]    @relation("CallCallee")
+  messagesSent    Message[] @relation("MessageSender")
+  messagesReceived Message[] @relation("MessageReceiver")
+
+  advertisementsCreated Advertisement[] @relation("AdvertisementCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -217,9 +280,60 @@ model Project {
   possessionDate DateTime?
   reraNumber     String?
 
-  listings Listing[]
+  listings       Listing[]
+  advertisements Advertisement[]
 
   createdAt DateTime @default(now())
+}
+
+/// Links a builder (User) to a channel partner (User). A builder can have many channel partners; a channel partner can work with many builders.
+model BuilderChannelPartner {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  builderId         String @db.ObjectId
+  channelPartnerId String @db.ObjectId
+  status            ChannelPartnerStatus @default(PENDING)
+
+  commissionRatePercent Float?
+  notes                String?
+  invitedAt            DateTime @default(now())
+  activatedAt          DateTime?
+
+  builder         User @relation("BuilderChannelPartners", fields: [builderId], references: [id], onDelete: Cascade)
+  channelPartner User @relation("ChannelPartnerBuilders", fields: [channelPartnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([builderId, channelPartnerId])
+  @@index([builderId])
+  @@index([channelPartnerId])
+  @@index([status])
+}
+
+/// User-submitted documents for verification (Aadhar, PAN, RERA, GST, etc.). Tracks status and admin review.
+model DocumentVerification {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId       String @db.ObjectId
+  documentType DocumentType
+  documentName String?  // e.g. "Aadhar front", "RERA certificate"
+  documentUrl  String
+  status       DocumentVerificationStatus @default(PENDING)
+
+  submittedAt DateTime @default(now())
+  verifiedAt  DateTime?
+  verifiedBy  String?   @db.ObjectId // Admin user who verified/rejected
+  remarks     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([documentType])
 }
 
 model Listing {
@@ -272,13 +386,32 @@ model Listing {
   images          ListingImage[]
   amenities       AmenityOnListing[]
   leads           Lead[]
+  calls           Call[]
+  messages        Message[]
+  advertisements  Advertisement[]
   favorites       ListingFavorite[]
   likes           ListingLike[]
   comments        ListingComment[]
   reviews         ListingReview[]
 
+  rentCharges RentCharges?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Rent and extra charges (for RENT/LEASE listings and PG/HOSTEL). Optional on Listing.
+type RentCharges {
+  monthlyRent            Float?   // same as price for rent; can override for display
+  securityDeposit        Float?
+  maintenanceCharge     Float?
+  electricityIncluded   Boolean?
+  electricityCharge     Float?
+  waterIncluded         Boolean?
+  foodIncluded          Boolean?  // PG/HOSTEL
+  foodCharges           Float?    // PG/HOSTEL monthly
+  laundryIncluded       Boolean?
+  otherChargesDescription String?
 }
 
 model ListingReview {
@@ -349,9 +482,63 @@ model Lead {
 
   createdAt DateTime @default(now())
 
-  listing Listing @relation(fields: [listingId], references: [id])
-  buyer   User    @relation("BuyerLeads", fields: [buyerId], references: [id])
-  owner   User    @relation("OwnerLeads", fields: [ownerId], references: [id])
+  listing  Listing   @relation(fields: [listingId], references: [id])
+  buyer    User      @relation("BuyerLeads", fields: [buyerId], references: [id])
+  owner    User      @relation("OwnerLeads", fields: [ownerId], references: [id])
+  calls    Call[]
+  messages Message[]
+}
+
+/// Call between two users (e.g. buyer → agent/builder/channel partner). Premium roles (agent, builder, channel partner) receive calls.
+model Call {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  callerId String @db.ObjectId
+  calleeId String @db.ObjectId
+  listingId String?  @db.ObjectId
+  leadId   String?  @db.ObjectId
+
+  durationSeconds Int?
+  status          CallStatus @default(INITIATED)
+
+  caller  User     @relation("CallCaller", fields: [callerId], references: [id], onDelete: Cascade)
+  callee  User     @relation("CallCallee", fields: [calleeId], references: [id], onDelete: Cascade)
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([callerId])
+  @@index([calleeId])
+  @@index([listingId])
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+/// Direct message between two users (e.g. buyer ↔ agent/builder/channel partner). Premium roles receive messages.
+model Message {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  senderId   String  @db.ObjectId
+  receiverId String  @db.ObjectId
+  content    String
+  listingId  String? @db.ObjectId
+  leadId     String? @db.ObjectId
+
+  readAt DateTime?
+
+  sender   User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User    @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  listing  Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  lead     Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([listingId])
+  @@index([leadId])
+  @@index([createdAt])
 }
 
 model LocationLog {
@@ -366,6 +553,67 @@ model LocationLog {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+/// Promoted content: banners, promoted listings/projects, sponsored ads. Shown on home, listing pages, etc.
+model Advertisement {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  title       String
+  type        AdvertisementType
+  imageUrl    String
+  targetUrl   String?  // optional; for PROMOTED_* type often derived from listing/project slug
+  description String?
+
+  listingId String? @db.ObjectId
+  projectId String? @db.ObjectId
+  createdById String? @db.ObjectId
+
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation("AdvertisementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([listingId])
+  @@index([projectId])
+}
+
+/// Catalog of subscription plans (price, billing, features). Users subscribe via Subscription with plan = PlanType.
+model SubscriptionPlan {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  planType    PlanType @unique
+  name        String
+  slug        String   @unique
+  description String?
+
+  priceAmount   Float
+  priceCurrency String  @default("INR")
+  billingInterval BillingInterval @default(MONTHLY)
+
+  /// Comma or newline-separated feature list, or JSON string
+  features   String?
+  maxListings Int?   // null = unlimited for FREE, or plan limit
+  isActive   Boolean @default(true)
+  sortOrder  Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 model Subscription {

@@ -65,6 +65,23 @@ export const ListingImageSchema: ObjectSchema = {
     },
 };
 
+export const RentChargesSchema: ObjectSchema = {
+    type: "object",
+    description: "Rent and extra charges for RENT/LEASE and PG/HOSTEL listings",
+    properties: {
+        monthlyRent: { type: "number", nullable: true },
+        securityDeposit: { type: "number", nullable: true },
+        maintenanceCharge: { type: "number", nullable: true },
+        electricityIncluded: { type: "boolean", nullable: true },
+        electricityCharge: { type: "number", nullable: true },
+        waterIncluded: { type: "boolean", nullable: true },
+        foodIncluded: { type: "boolean", nullable: true },
+        foodCharges: { type: "number", nullable: true },
+        laundryIncluded: { type: "boolean", nullable: true },
+        otherChargesDescription: { type: "string", nullable: true },
+    },
+};
+
 export const ListingSchema: ObjectSchema = {
     type: "object",
     properties: {
@@ -106,6 +123,7 @@ export const ListingSchema: ObjectSchema = {
             type: "array",
             items: ListingImageSchema as any,
         },
+        rentCharges: RentChargesSchema as any,
         createdAt: { type: "string", format: "date-time" },
         updatedAt: { type: "string", format: "date-time" },
     },
@@ -194,6 +212,7 @@ export const CreateListingBody: ObjectSchema = {
                 },
             },
         },
+        rentCharges: RentChargesSchema as any,
     },
 };
 

@@ -165,6 +165,23 @@ export const resolvers = {
             return userService.getKycStatus(userId);
         },
 
+        documentVerification: async (_: unknown, { id }: { id: string }) => {
+            return prisma.documentVerification.findUnique({ where: { id } });
+        },
+
+        documentVerifications: async (
+            _: unknown,
+            { userId, status }: { userId?: string; status?: string },
+        ) => {
+            const where: any = {};
+            if (userId) where.userId = userId;
+            if (status) where.status = status;
+            return prisma.documentVerification.findMany({
+                where,
+                orderBy: { submittedAt: "desc" },
+            });
+        },
+
         // ============================================
         // PROJECT QUERIES
         // ============================================
@@ -355,6 +372,80 @@ export const resolvers = {
             return resolvers.Query.leads(_, { input: { ...input, ownerId: context.user.id } });
         },
 
+        call: async (_: unknown, { id }: { id: string }) => {
+            return prisma.call.findUnique({
+                where: { id },
+                include: { caller: true, callee: true, listing: true, lead: true },
+            });
+        },
+
+        calls: async (
+            _: unknown,
+            {
+                callerId,
+                calleeId,
+                leadId,
+                listingId,
+                limit,
+            }: {
+                callerId?: string;
+                calleeId?: string;
+                leadId?: string;
+                listingId?: string;
+                limit?: number;
+            },
+        ) => {
+            const where: any = {};
+            if (callerId) where.callerId = callerId;
+            if (calleeId) where.calleeId = calleeId;
+            if (leadId) where.leadId = leadId;
+            if (listingId) where.listingId = listingId;
+            const take = Math.min(limit ?? 50, 100);
+            return prisma.call.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                take,
+                include: { caller: true, callee: true, listing: true, lead: true },
+            });
+        },
+
+        message: async (_: unknown, { id }: { id: string }) => {
+            return prisma.message.findUnique({
+                where: { id },
+                include: { sender: true, receiver: true, listing: true, lead: true },
+            });
+        },
+
+        messages: async (
+            _: unknown,
+            {
+                senderId,
+                receiverId,
+                leadId,
+                listingId,
+                limit,
+            }: {
+                senderId?: string;
+                receiverId?: string;
+                leadId?: string;
+                listingId?: string;
+                limit?: number;
+            },
+        ) => {
+            const where: any = {};
+            if (senderId) where.senderId = senderId;
+            if (receiverId) where.receiverId = receiverId;
+            if (leadId) where.leadId = leadId;
+            if (listingId) where.listingId = listingId;
+            const take = Math.min(limit ?? 50, 100);
+            return prisma.message.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                take,
+                include: { sender: true, receiver: true, listing: true, lead: true },
+            });
+        },
+
         // ============================================
         // REVIEW QUERIES
         // ============================================
@@ -396,6 +487,37 @@ export const resolvers = {
         // ============================================
         // AMENITY QUERIES
         // ============================================
+        advertisement: async (_: unknown, { id }: { id: string }) => {
+            return prisma.advertisement.findUnique({
+                where: { id },
+                include: { listing: true, project: true, createdBy: true },
+            });
+        },
+
+        advertisements: async (
+            _: unknown,
+            {
+                type,
+                activeOnly,
+                limit,
+            }: { type?: string; activeOnly?: boolean; limit?: number },
+        ) => {
+            const where: any = {};
+            if (type) where.type = type;
+            if (activeOnly !== false) {
+                where.isActive = true;
+                where.startDate = { lte: new Date() };
+                where.endDate = { gte: new Date() };
+            }
+            const take = Math.min(limit ?? 20, 100);
+            return prisma.advertisement.findMany({
+                where,
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+                take,
+                include: { listing: true, project: true, createdBy: true },
+            });
+        },
+
         amenity: async (_: unknown, { id }: { id: string }) => {
             return prisma.amenity.findUnique({ where: { id } });
         },
@@ -424,6 +546,31 @@ export const resolvers = {
             return prisma.subscription.findFirst({
                 where: { userId, active: true, expiry: { gt: new Date() } },
             });
+        },
+
+        subscriptionPlans: async (
+            _: unknown,
+            { planType, activeOnly }: { planType?: string; activeOnly?: boolean },
+        ) => {
+            const where: any = {};
+            if (planType) where.planType = planType;
+            if (activeOnly !== false) where.isActive = true;
+            return prisma.subscriptionPlan.findMany({
+                where,
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            });
+        },
+
+        subscriptionPlan: async (_: unknown, { id }: { id: string }) => {
+            return prisma.subscriptionPlan.findUnique({ where: { id } });
+        },
+
+        subscriptionPlanBySlug: async (_: unknown, { slug }: { slug: string }) => {
+            return prisma.subscriptionPlan.findUnique({ where: { slug } });
+        },
+
+        subscriptionPlanByType: async (_: unknown, { planType }: { planType: string }) => {
+            return prisma.subscriptionPlan.findUnique({ where: { planType } });
         },
 
         // ============================================
@@ -595,6 +742,48 @@ export const resolvers = {
             }
             const adminId = context.user?.id || "admin";
             return userService.verifyKyc(userId, adminId, validation.data);
+        },
+
+        submitDocumentVerification: async (
+            _: unknown,
+            { input }: { input: { documentType: string; documentName?: string; documentUrl: string } },
+            context: Context,
+        ) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            return prisma.documentVerification.create({
+                data: {
+                    userId: context.user.id,
+                    documentType: input.documentType,
+                    documentName: input.documentName ?? null,
+                    documentUrl: input.documentUrl,
+                },
+            });
+        },
+
+        updateDocumentVerificationStatus: async (
+            _: unknown,
+            {
+                id,
+                input,
+            }: {
+                id: string;
+                input: { status: string; remarks?: string };
+            },
+            context: Context,
+        ) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            const data: any = {
+                status: input.status,
+                remarks: input.remarks ?? null,
+            };
+            if (input.status === "VERIFIED" || input.status === "REJECTED") {
+                data.verifiedAt = new Date();
+                data.verifiedBy = context.user.id;
+            }
+            return prisma.documentVerification.update({
+                where: { id },
+                data,
+            });
         },
 
         // ============================================
@@ -872,6 +1061,54 @@ export const resolvers = {
             return { success: true, message: "Lead deleted successfully" };
         },
 
+        createCall: async (_: unknown, { input }: { input: any }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            return prisma.call.create({
+                data: {
+                    callerId: context.user.id,
+                    calleeId: input.calleeId,
+                    listingId: input.listingId ?? null,
+                    leadId: input.leadId ?? null,
+                },
+                include: { caller: true, callee: true, listing: true, lead: true },
+            });
+        },
+
+        updateCallStatus: async (
+            _: unknown,
+            { id, status, durationSeconds }: { id: string; status: string; durationSeconds?: number },
+        ) => {
+            const data: any = { status };
+            if (durationSeconds != null) data.durationSeconds = durationSeconds;
+            return prisma.call.update({
+                where: { id },
+                data,
+                include: { caller: true, callee: true, listing: true, lead: true },
+            });
+        },
+
+        createMessage: async (_: unknown, { input }: { input: any }, context: Context) => {
+            if (!context.user?.id) throw new Error("Not authenticated");
+            return prisma.message.create({
+                data: {
+                    senderId: context.user.id,
+                    receiverId: input.receiverId,
+                    content: input.content,
+                    listingId: input.listingId ?? null,
+                    leadId: input.leadId ?? null,
+                },
+                include: { sender: true, receiver: true, listing: true, lead: true },
+            });
+        },
+
+        markMessageRead: async (_: unknown, { id }: { id: string }) => {
+            return prisma.message.update({
+                where: { id },
+                data: { readAt: new Date() },
+                include: { sender: true, receiver: true, listing: true, lead: true },
+            });
+        },
+
         // ============================================
         // REVIEW MUTATIONS
         // ============================================
@@ -937,6 +1174,60 @@ export const resolvers = {
         // ============================================
         // AMENITY MUTATIONS
         // ============================================
+        createAdvertisement: async (_: unknown, { input }: { input: any }, context: Context) => {
+            const createdById = context.user?.id ?? null;
+            return prisma.advertisement.create({
+                data: {
+                    title: input.title,
+                    type: input.type,
+                    imageUrl: input.imageUrl,
+                    targetUrl: input.targetUrl ?? null,
+                    description: input.description ?? null,
+                    listingId: input.listingId ?? null,
+                    projectId: input.projectId ?? null,
+                    createdById,
+                    startDate: new Date(input.startDate),
+                    endDate: new Date(input.endDate),
+                    isActive: input.isActive ?? true,
+                    sortOrder: input.sortOrder ?? 0,
+                },
+                include: { listing: true, project: true, createdBy: true },
+            });
+        },
+
+        updateAdvertisement: async (_: unknown, { id, input }: { id: string; input: any }) => {
+            const data: any = {};
+            if (input.title != null) data.title = input.title;
+            if (input.type != null) data.type = input.type;
+            if (input.imageUrl != null) data.imageUrl = input.imageUrl;
+            if (input.targetUrl !== undefined) data.targetUrl = input.targetUrl;
+            if (input.description !== undefined) data.description = input.description;
+            if (input.listingId !== undefined) data.listingId = input.listingId;
+            if (input.projectId !== undefined) data.projectId = input.projectId;
+            if (input.startDate != null) data.startDate = new Date(input.startDate);
+            if (input.endDate != null) data.endDate = new Date(input.endDate);
+            if (input.isActive != null) data.isActive = input.isActive;
+            if (input.sortOrder != null) data.sortOrder = input.sortOrder;
+            return prisma.advertisement.update({
+                where: { id },
+                data,
+                include: { listing: true, project: true, createdBy: true },
+            });
+        },
+
+        deleteAdvertisement: async (_: unknown, { id }: { id: string }) => {
+            await prisma.advertisement.delete({ where: { id } });
+            return { success: true, message: "Advertisement deleted successfully" };
+        },
+
+        incrementAdvertisementClicks: async (_: unknown, { id }: { id: string }) => {
+            return prisma.advertisement.update({
+                where: { id },
+                data: { clicks: { increment: 1 } },
+                include: { listing: true, project: true, createdBy: true },
+            });
+        },
+
         createAmenity: async (_: unknown, { input }: { input: any }) => {
             return prisma.amenity.create({ data: input });
         },
@@ -961,6 +1252,42 @@ export const resolvers = {
             return prisma.subscription.update({
                 where: { id },
                 data: { active: false },
+            });
+        },
+
+        createSubscriptionPlan: async (_: unknown, { input }: { input: any }) => {
+            return prisma.subscriptionPlan.create({
+                data: {
+                    planType: input.planType,
+                    name: input.name,
+                    slug: input.slug,
+                    description: input.description ?? null,
+                    priceAmount: input.priceAmount,
+                    priceCurrency: input.priceCurrency ?? "INR",
+                    billingInterval: input.billingInterval ?? "MONTHLY",
+                    features: input.features ?? null,
+                    maxListings: input.maxListings ?? null,
+                    isActive: input.isActive ?? true,
+                    sortOrder: input.sortOrder ?? 0,
+                },
+            });
+        },
+
+        updateSubscriptionPlan: async (_: unknown, { id, input }: { id: string; input: any }) => {
+            const data: any = {};
+            if (input.name != null) data.name = input.name;
+            if (input.slug != null) data.slug = input.slug;
+            if (input.description != null) data.description = input.description;
+            if (input.priceAmount != null) data.priceAmount = input.priceAmount;
+            if (input.priceCurrency != null) data.priceCurrency = input.priceCurrency;
+            if (input.billingInterval != null) data.billingInterval = input.billingInterval;
+            if (input.features != null) data.features = input.features;
+            if (input.maxListings != null) data.maxListings = input.maxListings;
+            if (input.isActive != null) data.isActive = input.isActive;
+            if (input.sortOrder != null) data.sortOrder = input.sortOrder;
+            return prisma.subscriptionPlan.update({
+                where: { id },
+                data,
             });
         },
     },
@@ -1010,6 +1337,73 @@ export const resolvers = {
             if (parent.reviewsReceived) return parent.reviewsReceived;
             return prisma.review.findMany({ where: { userId: parent.id } });
         },
+        channelPartnerLinksAsBuilder: async (parent: any) => {
+            if (parent.channelPartnerLinksAsBuilder) return parent.channelPartnerLinksAsBuilder;
+            return prisma.builderChannelPartner.findMany({
+                where: { builderId: parent.id },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+        builderLinksAsChannelPartner: async (parent: any) => {
+            if (parent.builderLinksAsChannelPartner) return parent.builderLinksAsChannelPartner;
+            return prisma.builderChannelPartner.findMany({
+                where: { channelPartnerId: parent.id },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+        documentVerifications: async (parent: any) => {
+            if (parent.documentVerifications) return parent.documentVerifications;
+            return prisma.documentVerification.findMany({
+                where: { userId: parent.id },
+                orderBy: { submittedAt: "desc" },
+            });
+        },
+        callsAsCaller: async (parent: any) => {
+            if (parent.callsAsCaller) return parent.callsAsCaller;
+            return prisma.call.findMany({
+                where: { callerId: parent.id },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+        callsAsCallee: async (parent: any) => {
+            if (parent.callsAsCallee) return parent.callsAsCallee;
+            return prisma.call.findMany({
+                where: { calleeId: parent.id },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+        messagesSent: async (parent: any) => {
+            if (parent.messagesSent) return parent.messagesSent;
+            return prisma.message.findMany({
+                where: { senderId: parent.id },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+        messagesReceived: async (parent: any) => {
+            if (parent.messagesReceived) return parent.messagesReceived;
+            return prisma.message.findMany({
+                where: { receiverId: parent.id },
+                orderBy: { createdAt: "desc" },
+            });
+        },
+    },
+
+    DocumentVerification: {
+        user: async (parent: any) => {
+            if (parent.user) return parent.user;
+            return prisma.user.findUnique({ where: { id: parent.userId } });
+        },
+    },
+
+    BuilderChannelPartner: {
+        builder: async (parent: any) => {
+            if (parent.builder) return parent.builder;
+            return prisma.user.findUnique({ where: { id: parent.builderId } });
+        },
+        channelPartner: async (parent: any) => {
+            if (parent.channelPartner) return parent.channelPartner;
+            return prisma.user.findUnique({ where: { id: parent.channelPartnerId } });
+        },
     },
 
     Project: {
@@ -1020,6 +1414,31 @@ export const resolvers = {
         listings: async (parent: any) => {
             if (parent.listings) return parent.listings;
             return prisma.listing.findMany({ where: { projectId: parent.id, deletedAt: null } });
+        },
+        advertisements: async (parent: any) => {
+            if (parent.advertisements) return parent.advertisements;
+            return prisma.advertisement.findMany({
+                where: { projectId: parent.id },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+            });
+        },
+    },
+
+    Advertisement: {
+        listing: async (parent: any) => {
+            if (!parent.listingId) return null;
+            if (parent.listing) return parent.listing;
+            return prisma.listing.findUnique({ where: { id: parent.listingId } });
+        },
+        project: async (parent: any) => {
+            if (!parent.projectId) return null;
+            if (parent.project) return parent.project;
+            return prisma.project.findUnique({ where: { id: parent.projectId } });
+        },
+        createdBy: async (parent: any) => {
+            if (!parent.createdById) return null;
+            if (parent.createdBy) return parent.createdBy;
+            return prisma.user.findUnique({ where: { id: parent.createdById } });
         },
     },
 
@@ -1050,6 +1469,13 @@ export const resolvers = {
         leads: async (parent: any) => {
             if (parent.leads) return parent.leads;
             return prisma.lead.findMany({ where: { listingId: parent.id } });
+        },
+        advertisements: async (parent: any) => {
+            if (parent.advertisements) return parent.advertisements;
+            return prisma.advertisement.findMany({
+                where: { listingId: parent.id },
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+            });
         },
         favoritesCount: async (parent: any) => {
             if (parent.favoritesCount != null) return parent.favoritesCount;
@@ -1121,6 +1547,56 @@ export const resolvers = {
         owner: async (parent: any) => {
             if (parent.owner) return parent.owner;
             return prisma.user.findUnique({ where: { id: parent.ownerId } });
+        },
+        calls: async (parent: any) => {
+            if (parent.calls) return parent.calls;
+            return prisma.call.findMany({ where: { leadId: parent.id }, orderBy: { createdAt: "desc" } });
+        },
+        messages: async (parent: any) => {
+            if (parent.messages) return parent.messages;
+            return prisma.message.findMany({ where: { leadId: parent.id }, orderBy: { createdAt: "desc" } });
+        },
+    },
+
+    Call: {
+        caller: async (parent: any) => {
+            if (parent.caller) return parent.caller;
+            return prisma.user.findUnique({ where: { id: parent.callerId } });
+        },
+        callee: async (parent: any) => {
+            if (parent.callee) return parent.callee;
+            return prisma.user.findUnique({ where: { id: parent.calleeId } });
+        },
+        listing: async (parent: any) => {
+            if (!parent.listingId) return null;
+            if (parent.listing) return parent.listing;
+            return prisma.listing.findUnique({ where: { id: parent.listingId } });
+        },
+        lead: async (parent: any) => {
+            if (!parent.leadId) return null;
+            if (parent.lead) return parent.lead;
+            return prisma.lead.findUnique({ where: { id: parent.leadId } });
+        },
+    },
+
+    Message: {
+        sender: async (parent: any) => {
+            if (parent.sender) return parent.sender;
+            return prisma.user.findUnique({ where: { id: parent.senderId } });
+        },
+        receiver: async (parent: any) => {
+            if (parent.receiver) return parent.receiver;
+            return prisma.user.findUnique({ where: { id: parent.receiverId } });
+        },
+        listing: async (parent: any) => {
+            if (!parent.listingId) return null;
+            if (parent.listing) return parent.listing;
+            return prisma.listing.findUnique({ where: { id: parent.listingId } });
+        },
+        lead: async (parent: any) => {
+            if (!parent.leadId) return null;
+            if (parent.lead) return parent.lead;
+            return prisma.lead.findUnique({ where: { id: parent.leadId } });
         },
     },
 

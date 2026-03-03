@@ -28,6 +28,10 @@ type Mutation {
   submitPanKyc(userId: ID!, input: SubmitPanKycInput!): KycDetails!
   verifyKyc(userId: ID!, input: VerifyKycInput!): KycDetails!
 
+  # Document verification mutations
+  submitDocumentVerification(input: SubmitDocumentVerificationInput!): DocumentVerification!
+  updateDocumentVerificationStatus(id: ID!, input: UpdateDocumentVerificationStatusInput!): DocumentVerification!
+
   # Project mutations
   createProject(input: CreateProjectInput!): Project!
   updateProject(id: ID!, input: UpdateProjectInput!): Project!
@@ -65,10 +69,22 @@ type Mutation {
   updateLeadStatus(id: ID!, input: UpdateLeadInput!): Lead!
   deleteLead(id: ID!): SuccessResponse!
 
+  # Call & message (with agent / builder / channel partner)
+  createCall(input: CreateCallInput!): Call!
+  updateCallStatus(id: ID!, status: CallStatus!, durationSeconds: Int): Call!
+  createMessage(input: CreateMessageInput!): Message!
+  markMessageRead(id: ID!): Message!
+
   # Review mutations
   createReview(input: CreateReviewInput!): Review!
   updateReview(id: ID!, input: UpdateReviewInput!): Review!
   deleteReview(id: ID!): SuccessResponse!
+
+  # Advertisement mutations (admin)
+  createAdvertisement(input: CreateAdvertisementInput!): Advertisement!
+  updateAdvertisement(id: ID!, input: UpdateAdvertisementInput!): Advertisement!
+  deleteAdvertisement(id: ID!): SuccessResponse!
+  incrementAdvertisementClicks(id: ID!): Advertisement!
 
   # Amenity mutations (admin)
   createAmenity(input: CreateAmenityInput!): Amenity!
@@ -78,4 +94,8 @@ type Mutation {
   # Subscription mutations (admin)
   createSubscription(input: CreateSubscriptionInput!): Subscription!
   cancelSubscription(id: ID!): Subscription!
+
+  # Subscription plan catalog (admin)
+  createSubscriptionPlan(input: CreateSubscriptionPlanInput!): SubscriptionPlan!
+  updateSubscriptionPlan(id: ID!, input: UpdateSubscriptionPlanInput!): SubscriptionPlan!
 }

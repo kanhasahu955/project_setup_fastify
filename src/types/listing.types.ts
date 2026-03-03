@@ -1,6 +1,19 @@
 import type { Listing, ListingStatus, ListingType, PropertyType } from "../../generated/prisma/client";
 import type { ListOptions } from "./common.types";
 
+export interface RentChargesInput {
+    monthlyRent?: number | null;
+    securityDeposit?: number | null;
+    maintenanceCharge?: number | null;
+    electricityIncluded?: boolean | null;
+    electricityCharge?: number | null;
+    waterIncluded?: boolean | null;
+    foodIncluded?: boolean | null;
+    foodCharges?: number | null;
+    laundryIncluded?: boolean | null;
+    otherChargesDescription?: string | null;
+}
+
 export interface CreateListingInput {
     title: string;
     description: string;
@@ -32,12 +45,14 @@ export interface CreateListingInput {
         isPrimary?: boolean;
         order?: number;
     }[];
+    rentCharges?: RentChargesInput | null;
 }
 
 export interface UpdateListingInput extends Partial<CreateListingInput> {
     status?: ListingStatus;
     isFeatured?: boolean;
     isVerified?: boolean;
+    rentCharges?: RentChargesInput | null;
 }
 
 export interface ListingListOptions extends ListOptions {

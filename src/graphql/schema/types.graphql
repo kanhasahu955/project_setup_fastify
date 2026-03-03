@@ -7,7 +7,32 @@ enum UserRole {
   OWNER
   AGENT
   BUILDER
+  CHANNEL_PARTNER
   ADMIN
+}
+
+enum ChannelPartnerStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+enum DocumentType {
+  AADHAR
+  PAN
+  RERA_CERTIFICATE
+  GST_CERTIFICATE
+  BUSINESS_LICENSE
+  PROPERTY_DEED
+  OTHER
+}
+
+enum DocumentVerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
 }
 
 enum KycStatus {
@@ -38,6 +63,29 @@ enum PlanType {
   AGENT_BASIC
   AGENT_PRO
   BUILDER_PRO
+  CHANNEL_PARTNER_PRO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  COMPLETED
+  MISSED
+  NO_ANSWER
+  BUSY
+}
+
+enum AdvertisementType {
+  BANNER
+  PROMOTED_LISTING
+  PROMOTED_PROJECT
+  SPONSORED
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
 }
 
 enum ListingType {
@@ -99,6 +147,7 @@ enum AmenityCategory {
   SPORTS
   POWER_BACKUP
   WATER_SUPPLY
+  PG_FACILITY
 }
 
 # ============================================
@@ -155,6 +204,23 @@ type Subscription {
   active: Boolean!
 }
 
+type SubscriptionPlan {
+  id: ID!
+  planType: PlanType!
+  name: String!
+  slug: String!
+  description: String
+  priceAmount: Float!
+  priceCurrency: String!
+  billingInterval: BillingInterval!
+  features: String
+  maxListings: Int
+  isActive: Boolean!
+  sortOrder: Int!
+  createdAt: String!
+  updatedAt: String!
+}
+
 type User {
   id: ID!
   name: String!
@@ -175,6 +241,52 @@ type User {
   leadsAsOwner: [Lead]
   reviewsGiven: [Review]
   reviewsReceived: [Review]
+  channelPartnerLinksAsBuilder: [BuilderChannelPartner]
+  builderLinksAsChannelPartner: [BuilderChannelPartner]
+  documentVerifications: [DocumentVerification]
+  callsAsCaller: [Call]
+  callsAsCallee: [Call]
+  messagesSent: [Message]
+  messagesReceived: [Message]
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ============================================
+# BUILDER / CHANNEL PARTNER
+# ============================================
+
+type BuilderChannelPartner {
+  id: ID!
+  builderId: ID!
+  channelPartnerId: ID!
+  status: ChannelPartnerStatus!
+  commissionRatePercent: Float
+  notes: String
+  invitedAt: String!
+  activatedAt: String
+  builder: User
+  channelPartner: User
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ============================================
+# DOCUMENT VERIFICATION
+# ============================================
+
+type DocumentVerification {
+  id: ID!
+  userId: ID!
+  documentType: DocumentType!
+  documentName: String
+  documentUrl: String!
+  status: DocumentVerificationStatus!
+  submittedAt: String!
+  verifiedAt: String
+  verifiedBy: ID
+  remarks: String
+  user: User
   createdAt: String!
   updatedAt: String!
 }
@@ -238,7 +350,35 @@ type Project {
   possessionDate: String
   reraNumber: String
   listings: [Listing]
+  advertisements: [Advertisement]
   createdAt: String!
+}
+
+# ============================================
+# ADVERTISEMENT TYPES
+# ============================================
+
+type Advertisement {
+  id: ID!
+  title: String!
+  type: AdvertisementType!
+  imageUrl: String!
+  targetUrl: String
+  description: String
+  listingId: ID
+  projectId: ID
+  createdById: ID
+  startDate: String!
+  endDate: String!
+  isActive: Boolean!
+  sortOrder: Int!
+  impressions: Int!
+  clicks: Int!
+  listing: Listing
+  project: Project
+  createdBy: User
+  createdAt: String!
+  updatedAt: String!
 }
 
 # ============================================
@@ -312,6 +452,7 @@ type Listing {
   images: [ListingImage]
   amenities: [AmenityOnListing]
   leads: [Lead]
+  advertisements: [Advertisement]
   "Total favorites count (optional, may require listing id in context)"
   favoritesCount: Int
   "True if current user has favorited this listing (requires auth)"
@@ -324,10 +465,26 @@ type Listing {
   isRatedByMe: Boolean
   "Current user's rating 1-5 if set (requires auth)"
   myRating: Int
+  "Rent and charges breakdown (for RENT/LEASE and PG/HOSTEL)"
+  rentCharges: RentCharges
   createdAt: String!
   updatedAt: String!
   "Distance in km (only for nearbyListings)"
   distanceKm: Float
+}
+
+"Rent and extra charges for rent/lease and PG listings."
+type RentCharges {
+  monthlyRent: Float
+  securityDeposit: Float
+  maintenanceCharge: Float
+  electricityIncluded: Boolean
+  electricityCharge: Float
+  waterIncluded: Boolean
+  foodIncluded: Boolean
+  foodCharges: Float
+  laundryIncluded: Boolean
+  otherChargesDescription: String
 }
 
 type ListingReview {
@@ -380,6 +537,42 @@ type Lead {
   listing: Listing
   buyer: User
   owner: User
+  calls: [Call]
+  messages: [Message]
+  createdAt: String!
+}
+
+# ============================================
+# CALL & MESSAGE (agent / builder / channel partner)
+# ============================================
+
+type Call {
+  id: ID!
+  callerId: ID!
+  calleeId: ID!
+  listingId: ID
+  leadId: ID
+  durationSeconds: Int
+  status: CallStatus!
+  caller: User
+  callee: User
+  listing: Listing
+  lead: Lead
+  createdAt: String!
+}
+
+type Message {
+  id: ID!
+  senderId: ID!
+  receiverId: ID!
+  content: String!
+  listingId: ID
+  leadId: ID
+  readAt: String
+  sender: User
+  receiver: User
+  listing: Listing
+  lead: Lead
   createdAt: String!
 }
 
@@ -527,6 +720,7 @@ type RoleStats {
   OWNER: Int
   AGENT: Int
   BUILDER: Int
+  CHANNEL_PARTNER: Int
   ADMIN: Int
 }
 
@@ -631,6 +825,17 @@ input VerifyKycInput {
   verifyPan: Boolean
 }
 
+input SubmitDocumentVerificationInput {
+  documentType: DocumentType!
+  documentName: String
+  documentUrl: String!
+}
+
+input UpdateDocumentVerificationStatusInput {
+  status: DocumentVerificationStatus!
+  remarks: String
+}
+
 input UserListInput {
   page: Int
   limit: Int
@@ -684,6 +889,19 @@ input ProjectListInput {
 # INPUT TYPES - LISTING
 # ============================================
 
+input RentChargesInput {
+  monthlyRent: Float
+  securityDeposit: Float
+  maintenanceCharge: Float
+  electricityIncluded: Boolean
+  electricityCharge: Float
+  waterIncluded: Boolean
+  foodIncluded: Boolean
+  foodCharges: Float
+  laundryIncluded: Boolean
+  otherChargesDescription: String
+}
+
 input CreateListingInput {
   title: String!
   description: String!
@@ -711,6 +929,7 @@ input CreateListingInput {
   projectId: ID
   amenityIds: [ID]
   images: [ListingImageInput]
+  rentCharges: RentChargesInput
 }
 
 input UpdateListingInput {
@@ -739,6 +958,7 @@ input UpdateListingInput {
   latitude: Float
   longitude: Float
   isFeatured: Boolean
+  rentCharges: RentChargesInput
 }
 
 input ListingImageInput {
@@ -781,6 +1001,19 @@ input UpdateLeadInput {
   status: LeadStatus!
 }
 
+input CreateCallInput {
+  calleeId: ID!
+  listingId: ID
+  leadId: ID
+}
+
+input CreateMessageInput {
+  receiverId: ID!
+  content: String!
+  listingId: ID
+  leadId: ID
+}
+
 input LeadListInput {
   page: Int
   limit: Int
@@ -819,6 +1052,38 @@ input ReviewListInput {
 }
 
 # ============================================
+# INPUT TYPES - ADVERTISEMENT
+# ============================================
+
+input CreateAdvertisementInput {
+  title: String!
+  type: AdvertisementType!
+  imageUrl: String!
+  targetUrl: String
+  description: String
+  listingId: ID
+  projectId: ID
+  startDate: String!
+  endDate: String!
+  isActive: Boolean
+  sortOrder: Int
+}
+
+input UpdateAdvertisementInput {
+  title: String
+  type: AdvertisementType
+  imageUrl: String
+  targetUrl: String
+  description: String
+  listingId: ID
+  projectId: ID
+  startDate: String
+  endDate: String
+  isActive: Boolean
+  sortOrder: Int
+}
+
+# ============================================
 # INPUT TYPES - AMENITY
 # ============================================
 
@@ -842,4 +1107,31 @@ input CreateSubscriptionInput {
   userId: ID!
   plan: PlanType!
   expiry: String!
+}
+
+input CreateSubscriptionPlanInput {
+  planType: PlanType!
+  name: String!
+  slug: String!
+  description: String
+  priceAmount: Float!
+  priceCurrency: String
+  billingInterval: BillingInterval
+  features: String
+  maxListings: Int
+  isActive: Boolean
+  sortOrder: Int
+}
+
+input UpdateSubscriptionPlanInput {
+  name: String
+  slug: String
+  description: String
+  priceAmount: Float
+  priceCurrency: String
+  billingInterval: BillingInterval
+  features: String
+  maxListings: Int
+  isActive: Boolean
+  sortOrder: Int
 }

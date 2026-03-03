@@ -23,6 +23,10 @@ type Query {
   # KYC queries
   kycStatus(userId: ID!): KycDetails
 
+  # Document verification queries
+  documentVerification(id: ID!): DocumentVerification
+  documentVerifications(userId: ID, status: DocumentVerificationStatus): [DocumentVerification]!
+
   # Project queries
   project(id: ID!): Project
   projectBySlug(slug: String!): Project
@@ -47,10 +51,20 @@ type Query {
   myLeadsAsBuyer(input: LeadListInput): LeadListResponse!
   myLeadsAsOwner(input: LeadListInput): LeadListResponse!
 
+  # Call & message (with agent / builder / channel partner)
+  call(id: ID!): Call
+  calls(callerId: ID, calleeId: ID, leadId: ID, listingId: ID, limit: Int): [Call]!
+  message(id: ID!): Message
+  messages(senderId: ID, receiverId: ID, leadId: ID, listingId: ID, limit: Int): [Message]!
+
   # Review queries
   review(id: ID!): Review
   reviews(input: ReviewListInput): ReviewListResponse!
   userReviews(userId: ID!, input: ReviewListInput): ReviewListResponse!
+
+  # Advertisement queries
+  advertisement(id: ID!): Advertisement
+  advertisements(type: AdvertisementType, activeOnly: Boolean, limit: Int): [Advertisement]!
 
   # Amenity queries
   amenity(id: ID!): Amenity
@@ -60,6 +74,12 @@ type Query {
   subscription(id: ID!): Subscription
   userSubscriptions(userId: ID!): [Subscription]!
   activeSubscription(userId: ID!): Subscription
+
+  # Subscription plan catalog
+  subscriptionPlans(planType: PlanType, activeOnly: Boolean): [SubscriptionPlan]!
+  subscriptionPlan(id: ID!): SubscriptionPlan
+  subscriptionPlanBySlug(slug: String!): SubscriptionPlan
+  subscriptionPlanByType(planType: PlanType!): SubscriptionPlan
 
   # ImageKit queries
   imageKitAuthParams: ImageKitAuthParams!

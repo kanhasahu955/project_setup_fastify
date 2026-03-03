@@ -190,13 +190,17 @@ class ListingService {
             raw[key] = value;
         }
 
+        const createData: any = {
+            ...raw,
+            slug: generateSlug(String(input.title)),
+            ownerId,
+            status: "DRAFT",
+        };
+        if (input.rentCharges != null && typeof input.rentCharges === "object") {
+            createData.rentCharges = input.rentCharges;
+        }
         const listing = await prisma.listing.create({
-            data: {
-                ...raw,
-                slug: generateSlug(String(input.title)),
-                ownerId,
-                status: "DRAFT",
-            },
+            data: createData,
             include: this.baseInclude,
         });
 
@@ -230,7 +234,10 @@ class ListingService {
     }
 
     async update(id: string, input: UpdateListingInput): Promise<SafeListing> {
-        const data = cleanObject(input);
+        const data = cleanObject(input) as any;
+        if (input.rentCharges !== undefined) {
+            data.rentCharges = input.rentCharges;
+        }
 
         const listing = await prisma.listing.update({
             where: { id },

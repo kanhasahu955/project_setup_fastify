@@ -13,13 +13,13 @@ import {
 // ENUMS
 // ============================================
 
-export const UserRoleEnum = ["BUYER", "OWNER", "AGENT", "BUILDER", "ADMIN"] as const;
+export const UserRoleEnum = ["BUYER", "OWNER", "AGENT", "BUILDER", "CHANNEL_PARTNER", "ADMIN"] as const;
 
 // ============================================
 // MODEL SCHEMAS
 // ============================================
 
-export const PlanTypeEnum = ["FREE", "AGENT_BASIC", "AGENT_PRO", "BUILDER_PRO"] as const;
+export const PlanTypeEnum = ["FREE", "AGENT_BASIC", "AGENT_PRO", "BUILDER_PRO", "CHANNEL_PARTNER_PRO"] as const;
 export const KycStatusEnum = ["PENDING", "SUBMITTED", "UNDER_REVIEW", "VERIFIED", "REJECTED"] as const;
 
 export const KycDetailsSchema: ObjectSchema = {
